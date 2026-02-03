@@ -8,6 +8,12 @@
 - **اقدام بعدی**:
   - گروه‌بندی/اجرای گروهی اپ‌ها
   - Persistence (cache) برای اپ‌ها
+- **وضعیت فعلی**: اسکلت UI + لیست فرایندهای فعال در App Routing ساخته شده است.
+- **اقدام بعدی**:
+  - ساخت لیست «Important Apps»
+  - افزودن “Browse EXE + Args”
+  - Persistence (cache) برای اپ‌ها
+  - اجرای گروهی + ری‌لانچ
   - پروفایل per-app
 
 ## 2) Network Binding (Per App Routing)
