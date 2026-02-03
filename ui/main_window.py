@@ -67,9 +67,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # Content
         self.stack = QtWidgets.QStackedWidget()
 
-        self.page_dashboard = DashboardPage(self.engine, self.settings, go_to_settings_cb=self._go_settings)
+        self.page_dashboard = DashboardPage(
+            self.engine,
+            self.settings,
+            go_to_settings_cb=self._go_settings,
+            is_refresh_paused_cb=self._is_refresh_paused,
+        )
         self.page_vpn = VPNManagerPage(self.engine, self.settings)
-        self.page_route = AppRoutingPage(self.engine, self.settings)
+        self.page_route = AppRoutingPage(
+            self.engine,
+            self.settings,
+            is_refresh_paused_cb=self._is_refresh_paused,
+        )
         self.page_settings = SettingsPage(self.engine, self.settings)
 
         self.stack.addWidget(self.page_dashboard)
@@ -88,8 +97,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_route.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_route))
         self.btn_settings.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_settings))
 
+        self._build_menu()
+
     def _go_settings(self):
         self.stack.setCurrentWidget(self.page_settings)
+
+    def _build_menu(self):
+        menu = self.menuBar()
+
+        view_menu = menu.addMenu("View")
+        view_menu.addAction("Dashboard", lambda: self.stack.setCurrentWidget(self.page_dashboard))
+        view_menu.addAction("VPN Manager", lambda: self.stack.setCurrentWidget(self.page_vpn))
+        view_menu.addAction("App Routing", lambda: self.stack.setCurrentWidget(self.page_route))
+        view_menu.addAction("Settings", lambda: self.stack.setCurrentWidget(self.page_settings))
+
+        actions_menu = menu.addMenu("Actions")
+        actions_menu.addAction("Start Engine", self.engine.start_engine)
+        actions_menu.addAction("Stop Engine", self.engine.stop_engine)
+        actions_menu.addAction("Refresh App List", self.page_route.refresh_now)
 
     # ---------------------
     # Tray / Close behavior
@@ -105,9 +130,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu = QtWidgets.QMenu()
         act_show = menu.addAction("Show")
+        act_start = menu.addAction("Start Engine")
+        act_stop = menu.addAction("Stop Engine")
+        menu.addSeparator()
+        act_apps = menu.addAction("Refresh App List")
+        act_settings = menu.addAction("Open Settings")
+        menu.addSeparator()
         act_exit = menu.addAction("Exit")
 
         act_show.triggered.connect(self._tray_show)
+        act_start.triggered.connect(self.engine.start_engine)
+        act_stop.triggered.connect(self.engine.stop_engine)
+        act_apps.triggered.connect(self.page_route.refresh_now)
+        act_settings.triggered.connect(self._go_settings)
         act_exit.triggered.connect(self._tray_exit)
 
         tray.setContextMenu(menu)
@@ -119,6 +154,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def _apply_close_behavior(self):
         # reads settings; called on init and when user changes behavior
         pass
+
+    def _is_refresh_paused(self) -> bool:
+        ui = (self.settings.data.get("ui", {}) or {})
+        pause_when_min = bool(ui.get("pause_refresh_when_minimized", True))
+        if not pause_when_min:
+            return False
+        return self.isMinimized() or not self.isVisible()
 
     def _tray_activated(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         if reason == QtWidgets.QSystemTrayIcon.ActivationReason.Trigger:

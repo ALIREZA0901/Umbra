@@ -188,6 +188,9 @@ def _default_settings() -> Dict[str, Any]:
             "tray_enabled": True,
             "close_action": "minimize_to_tray",  # minimize_to_tray | exit
             "show_stream_bitrate_on_dashboard": True,
+            "refresh_enabled": True,
+            "refresh_interval_s": 60,
+            "pause_refresh_when_minimized": True,
         },
         "behavior": {
             "auto_suggestions": True,  # Accept/Deny flow; never forced.

@@ -8,7 +8,10 @@
   "ui": {
     "tray_enabled": true,
     "close_action": "minimize_to_tray",
-    "show_stream_bitrate_on_dashboard": true
+    "show_stream_bitrate_on_dashboard": true,
+    "refresh_enabled": true,
+    "refresh_interval_s": 60,
+    "pause_refresh_when_minimized": true
   },
   "behavior": {
     "auto_suggestions": true

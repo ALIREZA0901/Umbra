@@ -236,11 +236,18 @@ class OptimizeDnsWorker(QtCore.QThread):
 # ---------------------
 
 class DashboardPage(QtWidgets.QWidget):
-    def __init__(self, engine: EngineManager, settings: SettingsManager, go_to_settings_cb: Optional[Callable[[], None]] = None):
+    def __init__(
+        self,
+        engine: EngineManager,
+        settings: SettingsManager,
+        go_to_settings_cb: Optional[Callable[[], None]] = None,
+        is_refresh_paused_cb: Optional[Callable[[], bool]] = None,
+    ):
         super().__init__()
         self.engine = engine
         self.settings = settings
         self.go_to_settings_cb = go_to_settings_cb
+        self.is_refresh_paused_cb = is_refresh_paused_cb
 
         self.scanner = NetworkScanner()
 
@@ -560,6 +567,8 @@ class DashboardPage(QtWidgets.QWidget):
         self.lbl_live2.setText(f"Ping60s: {ping:.0f} ms   Loss60s: {loss*100:.0f}%   Jitter60s: {jitter:.1f} ms")
 
     def _tick(self):
+        if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
+            return
         # engine state visuals
         self._update_engine_button()
 
@@ -845,15 +854,25 @@ class VPNManagerPage(QtWidgets.QWidget):
 # ---------------------
 
 class AppRoutingPage(QtWidgets.QWidget):
-    def __init__(self, engine: EngineManager, settings: SettingsManager):
+    def __init__(
+        self,
+        engine: EngineManager,
+        settings: SettingsManager,
+        is_refresh_paused_cb: Optional[Callable[[], bool]] = None,
+    ):
         super().__init__()
         self.engine = engine
         self.settings = settings
+        self.is_refresh_paused_cb = is_refresh_paused_cb
         self.scanner = NetworkScanner()
 
         self._build()
         self._wire()
         self._refresh()
+
+        self._auto_timer = QtCore.QTimer(self)
+        self._auto_timer.timeout.connect(self._maybe_auto_refresh)
+        self._auto_timer.start(1000)
 
     def _build(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -929,6 +948,25 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.cmb_app_filter.currentIndexChanged.connect(self._refresh)
         self.lst_apps.currentItemChanged.connect(lambda *_: self._load_app_rule())
         self.btn_apply.clicked.connect(self._apply)
+
+    def refresh_now(self):
+        self._refresh()
+
+    def _maybe_auto_refresh(self):
+        if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
+            return
+        ui = (self.settings.data.get("ui", {}) or {})
+        if not bool(ui.get("refresh_enabled", True)):
+            return
+        interval_s = int(ui.get("refresh_interval_s", 60))
+        if interval_s <= 0:
+            return
+        now = time.time()
+        last = getattr(self, "_last_auto_refresh", 0.0)
+        if now - last < interval_s:
+            return
+        self._last_auto_refresh = now
+        self._refresh()
 
     def _refresh(self):
         self.lst_apps.clear()
@@ -1172,9 +1210,17 @@ class SettingsPage(QtWidgets.QWidget):
         self.cmb_close = QtWidgets.QComboBox()
         self.cmb_close.addItems(["minimize_to_tray", "exit"])
         self.chk_show_bitrate = QtWidgets.QCheckBox("Show bitrate helper on dashboard")
+        self.chk_refresh = QtWidgets.QCheckBox("Auto refresh app list")
+        self.spin_refresh = QtWidgets.QSpinBox()
+        self.spin_refresh.setRange(5, 3600)
+        self.spin_refresh.setSuffix(" s")
+        self.chk_pause_min = QtWidgets.QCheckBox("Pause refresh when minimized")
         b.addRow("Tray", self.chk_tray)
         b.addRow("Close button action", self.cmb_close)
         b.addRow("Dashboard", self.chk_show_bitrate)
+        b.addRow("Auto refresh", self.chk_refresh)
+        b.addRow("Refresh interval", self.spin_refresh)
+        b.addRow("Minimized", self.chk_pause_min)
 
         # Copilot (manual suggestions) - choose intensity
         self.cmb_copilot_mode = QtWidgets.QComboBox()
@@ -1223,6 +1269,9 @@ class SettingsPage(QtWidgets.QWidget):
         self.chk_tray.toggled.connect(self._save_behavior)
         self.cmb_close.currentTextChanged.connect(self._save_behavior)
         self.chk_show_bitrate.toggled.connect(self._save_behavior)
+        self.chk_refresh.toggled.connect(self._save_behavior)
+        self.spin_refresh.valueChanged.connect(self._save_behavior)
+        self.chk_pause_min.toggled.connect(self._save_behavior)
 
     def _open_openvpn(self):
         # OpenVPN Community Downloads (installer/manual)
@@ -1246,6 +1295,9 @@ class SettingsPage(QtWidgets.QWidget):
         self.chk_tray.setChecked(bool(ui.get("tray_enabled", True)))
         self.cmb_close.setCurrentText(str(ui.get("close_action", "minimize_to_tray")))
         self.chk_show_bitrate.setChecked(bool(ui.get("show_stream_bitrate_on_dashboard", True)))
+        self.chk_refresh.setChecked(bool(ui.get("refresh_enabled", True)))
+        self.spin_refresh.setValue(int(ui.get("refresh_interval_s", 60)))
+        self.chk_pause_min.setChecked(bool(ui.get("pause_refresh_when_minimized", True)))
         if hasattr(self, "cmb_copilot_mode"):
             self.cmb_copilot_mode.setCurrentText(self.settings.get_copilot_mode())
 
@@ -1261,6 +1313,9 @@ class SettingsPage(QtWidgets.QWidget):
         self.settings.data.setdefault("ui", {})["tray_enabled"] = self.chk_tray.isChecked()
         self.settings.data.setdefault("ui", {})["close_action"] = self.cmb_close.currentText()
         self.settings.data.setdefault("ui", {})["show_stream_bitrate_on_dashboard"] = self.chk_show_bitrate.isChecked()
+        self.settings.data.setdefault("ui", {})["refresh_enabled"] = self.chk_refresh.isChecked()
+        self.settings.data.setdefault("ui", {})["refresh_interval_s"] = int(self.spin_refresh.value())
+        self.settings.data.setdefault("ui", {})["pause_refresh_when_minimized"] = self.chk_pause_min.isChecked()
         # copilot mode
         if hasattr(self, "cmb_copilot_mode"):
             self.settings.set_copilot_mode(self.cmb_copilot_mode.currentText())
