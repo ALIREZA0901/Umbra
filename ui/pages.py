@@ -893,12 +893,19 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_browse = QtWidgets.QPushButton("Browse")
         self.in_app_args = QtWidgets.QLineEdit()
         self.in_app_args.setPlaceholderText("Optional arguments")
+        self.in_app_group = QtWidgets.QLineEdit()
+        self.in_app_group.setPlaceholderText("Group (optional)")
         self.btn_add_app = QtWidgets.QPushButton("Add App")
 
         form.addWidget(self.in_app_name, 1)
         form.addWidget(self.in_app_path, 2)
         form.addWidget(self.btn_browse, 0)
         form.addWidget(self.in_app_args, 1)
+        form.addWidget(self.in_app_group, 1)
+        form.addWidget(self.btn_add_app, 0)
+
+        self.tbl_apps = QtWidgets.QTableWidget(0, 7)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Running", "Type"])
         form.addWidget(self.btn_add_app, 0)
 
         self.tbl_apps = QtWidgets.QTableWidget(0, 6)
@@ -908,6 +915,18 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.tbl_apps.horizontalHeader().setStretchLastSection(True)
         self.tbl_apps.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.tbl_apps.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        group_actions = QtWidgets.QHBoxLayout()
+        self.cmb_group = QtWidgets.QComboBox()
+        self.cmb_group.addItem("All groups")
+        self.btn_launch_group = QtWidgets.QPushButton("Launch Group")
+        self.btn_stop_group = QtWidgets.QPushButton("Stop Group")
+        for b in (self.btn_launch_group, self.btn_stop_group):
+            b.setMinimumHeight(36)
+        group_actions.addWidget(QtWidgets.QLabel("Group:"))
+        group_actions.addWidget(self.cmb_group, 1)
+        group_actions.addWidget(self.btn_launch_group)
+        group_actions.addWidget(self.btn_stop_group)
 
         actions = QtWidgets.QHBoxLayout()
         self.btn_refresh = QtWidgets.QPushButton("Refresh")
@@ -940,6 +959,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         actions.addWidget(self.btn_remove)
 
         g.addLayout(form)
+        g.addLayout(group_actions)
         g.addWidget(self.tbl_apps, 1)
         g.addLayout(actions)
 
@@ -954,6 +974,10 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_stop.clicked.connect(self._stop_selected)
         self.btn_launch_enabled.clicked.connect(self._launch_enabled)
         self.btn_stop_enabled.clicked.connect(self._stop_enabled)
+        self.btn_launch_group.clicked.connect(self._launch_group)
+        self.btn_stop_group.clicked.connect(self._stop_group)
+        self.btn_remove.clicked.connect(self._remove_selected)
+        self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
@@ -969,6 +993,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         rows = self._all_apps()
         self.tbl_apps.blockSignals(True)
         self.tbl_apps.setRowCount(0)
+        groups = set()
         for app in rows:
             row = self.tbl_apps.rowCount()
             self.tbl_apps.insertRow(row)
@@ -977,6 +1002,9 @@ class AppLauncherPage(QtWidgets.QWidget):
             args = app.get("args", "")
             app_type = app.get("type", "important")
             enabled = bool(app.get("enabled", True))
+            group = app.get("group", "Default") or "Default"
+            run_state = "Yes" if running.get(name.lower()) else "No"
+            groups.add(group)
             run_state = "Yes" if running.get(name.lower()) else "No"
 
             enabled_item = QtWidgets.QTableWidgetItem("")
@@ -986,6 +1014,12 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.tbl_apps.setItem(row, 1, QtWidgets.QTableWidgetItem(str(name)))
             self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(path)))
             self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(str(args)))
+            self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(str(group)))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
             self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(run_state))
             self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(app_type))
         self.tbl_apps.blockSignals(False)
@@ -1009,12 +1043,14 @@ class AppLauncherPage(QtWidgets.QWidget):
         name = self.in_app_name.text().strip()
         path = self.in_app_path.text().strip()
         args = self.in_app_args.text().strip()
+        group = self.in_app_group.text().strip() or "Default"
         if not name:
             return
         if path and not os.path.exists(path):
             QtWidgets.QMessageBox.warning(self, "Invalid Path", "The selected executable does not exist.")
             return
 
+        app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom", "group": group}
         app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom"}
         apps = self.settings.data.setdefault("apps", {}).setdefault("custom", [])
         apps.append(app)
@@ -1023,6 +1059,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.in_app_name.clear()
         self.in_app_path.clear()
         self.in_app_args.clear()
+        self.in_app_group.clear()
         self._refresh()
 
     def _selected_app_names(self) -> List[str]:
@@ -1140,6 +1177,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
         row = item.row()
         name_item = self.tbl_apps.item(row, 1)
+        type_item = self.tbl_apps.item(row, 6)
         type_item = self.tbl_apps.item(row, 5)
         if not name_item or not type_item:
             return
@@ -1164,6 +1202,46 @@ class AppLauncherPage(QtWidgets.QWidget):
         last = apps.setdefault("last_launch", {})
         last[name] = time.strftime("%Y-%m-%d %H:%M:%S")
         self.settings.save()
+
+    def _refresh_groups(self, groups: List[str]):
+        current = self.cmb_group.currentText()
+        self.cmb_group.blockSignals(True)
+        self.cmb_group.clear()
+        self.cmb_group.addItem("All groups")
+        for group in groups:
+            self.cmb_group.addItem(group)
+        if current and current in groups:
+            self.cmb_group.setCurrentText(current)
+        self.cmb_group.blockSignals(False)
+
+    def _selected_group(self) -> Optional[str]:
+        group = self.cmb_group.currentText()
+        if group == "All groups":
+            return None
+        return group
+
+    def _launch_group(self):
+        group = self._selected_group()
+        if not group:
+            return
+        relaunch = self.chk_relaunch.isChecked()
+        for app in self._all_apps():
+            if (app.get("group") or "Default") == group:
+                self._launch_app(app, relaunch)
+        self._refresh()
+
+    def _stop_group(self):
+        group = self._selected_group()
+        if not group:
+            return
+        for app in self._all_apps():
+            if (app.get("group") or "Default") == group:
+                for p in self._match_processes(app):
+                    try:
+                        p.terminate()
+                    except Exception:
+                        continue
+        self._refresh()
 
 
 # ---------------------

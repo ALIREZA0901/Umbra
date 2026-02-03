@@ -174,42 +174,56 @@
         "name": "OBS",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "Discord",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "Chrome",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "Steam",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "Spotify",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "TeamSpeak",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       },
       {
         "name": "Telegram",
         "path": "",
         "args": "",
+        "enabled": true,
+        "group": "Default"
         "enabled": true
       }
     ],
