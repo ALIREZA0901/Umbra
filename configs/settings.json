@@ -176,6 +176,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "Discord",
@@ -183,6 +184,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "Chrome",
@@ -190,6 +192,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "Steam",
@@ -197,6 +200,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "Spotify",
@@ -204,6 +208,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "TeamSpeak",
@@ -211,6 +216,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       },
       {
         "name": "Telegram",
@@ -218,6 +224,7 @@
         "args": "",
         "enabled": true,
         "group": "Default"
+        "enabled": true
       }
     ],
     "custom": [],
