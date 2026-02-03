@@ -901,6 +901,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         form.addWidget(self.in_app_args, 1)
         form.addWidget(self.btn_add_app, 0)
 
+        self.tbl_apps = QtWidgets.QTableWidget(0, 6)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Running", "Type"])
         self.tbl_apps = QtWidgets.QTableWidget(0, 5)
         self.tbl_apps.setHorizontalHeaderLabels(["Name", "Path", "Args", "Running", "Type"])
         self.tbl_apps.horizontalHeader().setStretchLastSection(True)
@@ -911,6 +913,18 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_refresh = QtWidgets.QPushButton("Refresh")
         self.btn_launch = QtWidgets.QPushButton("Launch Selected")
         self.btn_stop = QtWidgets.QPushButton("Stop Selected")
+        self.btn_launch_enabled = QtWidgets.QPushButton("Launch Enabled")
+        self.btn_stop_enabled = QtWidgets.QPushButton("Stop Enabled")
+        self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
+        self.btn_remove = QtWidgets.QPushButton("Remove Selected")
+        for b in (
+            self.btn_refresh,
+            self.btn_launch,
+            self.btn_stop,
+            self.btn_launch_enabled,
+            self.btn_stop_enabled,
+            self.btn_remove,
+        ):
         self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
         self.btn_remove = QtWidgets.QPushButton("Remove Selected")
         for b in (self.btn_refresh, self.btn_launch, self.btn_stop, self.btn_remove):
@@ -919,6 +933,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         actions.addWidget(self.btn_refresh)
         actions.addWidget(self.btn_launch)
         actions.addWidget(self.btn_stop)
+        actions.addWidget(self.btn_launch_enabled)
+        actions.addWidget(self.btn_stop_enabled)
         actions.addWidget(self.chk_relaunch)
         actions.addStretch(1)
         actions.addWidget(self.btn_remove)
@@ -936,6 +952,10 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_refresh.clicked.connect(self._refresh)
         self.btn_launch.clicked.connect(self._launch_selected)
         self.btn_stop.clicked.connect(self._stop_selected)
+        self.btn_launch_enabled.clicked.connect(self._launch_enabled)
+        self.btn_stop_enabled.clicked.connect(self._stop_enabled)
+        self.btn_remove.clicked.connect(self._remove_selected)
+        self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
 
     def _all_apps(self) -> List[Dict[str, Any]]:
@@ -947,6 +967,7 @@ class AppLauncherPage(QtWidgets.QWidget):
     def _refresh(self):
         running = self._find_running()
         rows = self._all_apps()
+        self.tbl_apps.blockSignals(True)
         self.tbl_apps.setRowCount(0)
         for app in rows:
             row = self.tbl_apps.rowCount()
@@ -955,6 +976,19 @@ class AppLauncherPage(QtWidgets.QWidget):
             path = app.get("path", "")
             args = app.get("args", "")
             app_type = app.get("type", "important")
+            enabled = bool(app.get("enabled", True))
+            run_state = "Yes" if running.get(name.lower()) else "No"
+
+            enabled_item = QtWidgets.QTableWidgetItem("")
+            enabled_item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+            enabled_item.setCheckState(QtCore.Qt.CheckState.Checked if enabled else QtCore.Qt.CheckState.Unchecked)
+            self.tbl_apps.setItem(row, 0, enabled_item)
+            self.tbl_apps.setItem(row, 1, QtWidgets.QTableWidgetItem(str(name)))
+            self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(path)))
+            self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(str(args)))
+            self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
             run_state = "Yes" if running.get(name.lower()) else "No"
 
             self.tbl_apps.setItem(row, 0, QtWidgets.QTableWidgetItem(str(name)))
@@ -996,6 +1030,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         rows = sorted({it.row() for it in items})
         names = []
         for r in rows:
+            name_item = self.tbl_apps.item(r, 1)
             name_item = self.tbl_apps.item(r, 0)
             if name_item:
                 names.append(name_item.text())
@@ -1047,6 +1082,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         args = _split_args(app.get("args", ""))
         try:
             subprocess.Popen([path, *args])
+            self._mark_last_launch(app.get("name", ""))
         except Exception:
             pass
 
@@ -1056,6 +1092,14 @@ class AppLauncherPage(QtWidgets.QWidget):
         relaunch = self.chk_relaunch.isChecked()
         for app in apps:
             if app.get("name") in names:
+                self._launch_app(app, relaunch)
+        self._refresh()
+
+    def _launch_enabled(self):
+        apps = self._all_apps()
+        relaunch = self.chk_relaunch.isChecked()
+        for app in apps:
+            if app.get("enabled", True):
                 self._launch_app(app, relaunch)
         self._refresh()
 
@@ -1071,6 +1115,17 @@ class AppLauncherPage(QtWidgets.QWidget):
                         continue
         self._refresh()
 
+    def _stop_enabled(self):
+        apps = self._all_apps()
+        for app in apps:
+            if app.get("enabled", True):
+                for p in self._match_processes(app):
+                    try:
+                        p.terminate()
+                    except Exception:
+                        continue
+        self._refresh()
+
     def _remove_selected(self):
         names = set(self._selected_app_names())
         apps = self.settings.data.get("apps", {}) or {}
@@ -1079,6 +1134,36 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.settings.data["apps"] = apps
         self.settings.save()
         self._refresh()
+
+    def _on_item_changed(self, item: QtWidgets.QTableWidgetItem):
+        if item.column() != 0:
+            return
+        row = item.row()
+        name_item = self.tbl_apps.item(row, 1)
+        type_item = self.tbl_apps.item(row, 5)
+        if not name_item or not type_item:
+            return
+        name = name_item.text()
+        app_type = type_item.text()
+        enabled = item.checkState() == QtCore.Qt.CheckState.Checked
+
+        apps = self.settings.data.get("apps", {}) or {}
+        bucket = apps.get("custom", []) if app_type == "custom" else apps.get("important", [])
+        for app in bucket:
+            if app.get("name") == name:
+                app["enabled"] = enabled
+                break
+        self.settings.data["apps"] = apps
+        self.settings.save()
+
+    def _mark_last_launch(self, name: str):
+        name = (name or "").strip()
+        if not name:
+            return
+        apps = self.settings.data.setdefault("apps", {})
+        last = apps.setdefault("last_launch", {})
+        last[name] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self.settings.save()
 
 
 # ---------------------

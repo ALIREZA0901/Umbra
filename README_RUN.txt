@@ -25,6 +25,7 @@ Notes:
 - Engine Start/Stop is fixed: Stop Engine stops all threads; Exit closes fully.
 - System tray behavior: Settings -> Behavior (minimize to tray or exit).
 - Auto refresh: Settings -> Behavior (interval + pause when minimized).
+- App Launcher: add apps, enable/disable, launch/stop selected or enabled, and refresh running status.
 - App Launcher: add apps, launch/stop selected, and refresh running status.
 - DNS list is prefilled (IR + GLOBAL). Add/remove in Settings -> DNS.
 - VPN manager supports: import from clipboard/paste, subscriptions, auto-detect type/core (for management). (Core-runner integration is planned for next phase.)
