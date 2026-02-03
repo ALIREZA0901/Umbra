@@ -75,6 +75,18 @@ def _parse_ping_ms(output: str) -> Optional[float]:
     return None
 
 
+def _split_args(raw: str) -> List[str]:
+    raw = (raw or "").strip()
+    if not raw:
+        return []
+    try:
+        import shlex
+
+        return shlex.split(raw)
+    except Exception:
+        return raw.split()
+
+
 # ---------------------
 # Graph widgets (no zoom)
 # ---------------------
@@ -847,6 +859,226 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.settings.data.setdefault("profiles", {}).setdefault("items", {}).setdefault(active_profile, {})["active_config_idx"] = row
         self.settings.save()
         QtWidgets.QMessageBox.information(self, "Active Config", f"Selected config set for profile: {active_profile}")
+
+
+# ---------------------
+# App Launcher Page
+# ---------------------
+
+class AppLauncherPage(QtWidgets.QWidget):
+    def __init__(self, engine: EngineManager, settings: SettingsManager):
+        super().__init__()
+        self.engine = engine
+        self.settings = settings
+        self._build()
+        self._wire()
+        self._refresh()
+
+    def _build(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        top = QtWidgets.QHBoxLayout()
+        top.setSpacing(12)
+
+        gb_apps = QtWidgets.QGroupBox("App Launcher")
+        g = QtWidgets.QVBoxLayout(gb_apps)
+
+        form = QtWidgets.QHBoxLayout()
+        self.in_app_name = QtWidgets.QLineEdit()
+        self.in_app_name.setPlaceholderText("App name")
+        self.in_app_path = QtWidgets.QLineEdit()
+        self.in_app_path.setPlaceholderText("Path to EXE")
+        self.btn_browse = QtWidgets.QPushButton("Browse")
+        self.in_app_args = QtWidgets.QLineEdit()
+        self.in_app_args.setPlaceholderText("Optional arguments")
+        self.btn_add_app = QtWidgets.QPushButton("Add App")
+
+        form.addWidget(self.in_app_name, 1)
+        form.addWidget(self.in_app_path, 2)
+        form.addWidget(self.btn_browse, 0)
+        form.addWidget(self.in_app_args, 1)
+        form.addWidget(self.btn_add_app, 0)
+
+        self.tbl_apps = QtWidgets.QTableWidget(0, 5)
+        self.tbl_apps.setHorizontalHeaderLabels(["Name", "Path", "Args", "Running", "Type"])
+        self.tbl_apps.horizontalHeader().setStretchLastSection(True)
+        self.tbl_apps.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tbl_apps.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        actions = QtWidgets.QHBoxLayout()
+        self.btn_refresh = QtWidgets.QPushButton("Refresh")
+        self.btn_launch = QtWidgets.QPushButton("Launch Selected")
+        self.btn_stop = QtWidgets.QPushButton("Stop Selected")
+        self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
+        self.btn_remove = QtWidgets.QPushButton("Remove Selected")
+        for b in (self.btn_refresh, self.btn_launch, self.btn_stop, self.btn_remove):
+            b.setMinimumHeight(40)
+
+        actions.addWidget(self.btn_refresh)
+        actions.addWidget(self.btn_launch)
+        actions.addWidget(self.btn_stop)
+        actions.addWidget(self.chk_relaunch)
+        actions.addStretch(1)
+        actions.addWidget(self.btn_remove)
+
+        g.addLayout(form)
+        g.addWidget(self.tbl_apps, 1)
+        g.addLayout(actions)
+
+        top.addWidget(gb_apps, 1)
+        layout.addLayout(top, 1)
+
+    def _wire(self):
+        self.btn_browse.clicked.connect(self._browse_exe)
+        self.btn_add_app.clicked.connect(self._add_app)
+        self.btn_refresh.clicked.connect(self._refresh)
+        self.btn_launch.clicked.connect(self._launch_selected)
+        self.btn_stop.clicked.connect(self._stop_selected)
+        self.btn_remove.clicked.connect(self._remove_selected)
+
+    def _all_apps(self) -> List[Dict[str, Any]]:
+        apps = self.settings.data.get("apps", {}) or {}
+        important = apps.get("important", []) or []
+        custom = apps.get("custom", []) or []
+        return [*important, *custom]
+
+    def _refresh(self):
+        running = self._find_running()
+        rows = self._all_apps()
+        self.tbl_apps.setRowCount(0)
+        for app in rows:
+            row = self.tbl_apps.rowCount()
+            self.tbl_apps.insertRow(row)
+            name = app.get("name", "")
+            path = app.get("path", "")
+            args = app.get("args", "")
+            app_type = app.get("type", "important")
+            run_state = "Yes" if running.get(name.lower()) else "No"
+
+            self.tbl_apps.setItem(row, 0, QtWidgets.QTableWidgetItem(str(name)))
+            self.tbl_apps.setItem(row, 1, QtWidgets.QTableWidgetItem(str(path)))
+            self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(args)))
+            self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.resizeColumnsToContents()
+
+    def _browse_exe(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select application", "", "Executable (*.exe)")
+        if path:
+            self.in_app_path.setText(path)
+            if not self.in_app_name.text().strip():
+                self.in_app_name.setText(os.path.splitext(os.path.basename(path))[0])
+
+    def _add_app(self):
+        name = self.in_app_name.text().strip()
+        path = self.in_app_path.text().strip()
+        args = self.in_app_args.text().strip()
+        if not name:
+            return
+        if path and not os.path.exists(path):
+            QtWidgets.QMessageBox.warning(self, "Invalid Path", "The selected executable does not exist.")
+            return
+
+        app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom"}
+        apps = self.settings.data.setdefault("apps", {}).setdefault("custom", [])
+        apps.append(app)
+        self.settings.save()
+
+        self.in_app_name.clear()
+        self.in_app_path.clear()
+        self.in_app_args.clear()
+        self._refresh()
+
+    def _selected_app_names(self) -> List[str]:
+        items = self.tbl_apps.selectedItems()
+        rows = sorted({it.row() for it in items})
+        names = []
+        for r in rows:
+            name_item = self.tbl_apps.item(r, 0)
+            if name_item:
+                names.append(name_item.text())
+        return names
+
+    def _find_running(self) -> Dict[str, bool]:
+        running = {}
+        for p in psutil.process_iter(attrs=["name", "exe"]):
+            try:
+                name = (p.info.get("name") or "").lower()
+                exe = (p.info.get("exe") or "").lower()
+                if name:
+                    running[name] = True
+                if exe:
+                    running[exe] = True
+            except Exception:
+                continue
+        return running
+
+    def _match_processes(self, app: Dict[str, Any]) -> List[psutil.Process]:
+        matches = []
+        name = (app.get("name") or "").lower()
+        path = (app.get("path") or "").lower()
+        for p in psutil.process_iter(attrs=["name", "exe"]):
+            try:
+                pname = (p.info.get("name") or "").lower()
+                pexe = (p.info.get("exe") or "").lower()
+                if path and pexe == path:
+                    matches.append(p)
+                elif name and pname == name:
+                    matches.append(p)
+            except Exception:
+                continue
+        return matches
+
+    def _launch_app(self, app: Dict[str, Any], relaunch: bool):
+        matches = self._match_processes(app)
+        if matches and not relaunch:
+            return
+        if matches and relaunch:
+            for p in matches:
+                try:
+                    p.terminate()
+                except Exception:
+                    continue
+        path = app.get("path") or ""
+        if not path:
+            return
+        args = _split_args(app.get("args", ""))
+        try:
+            subprocess.Popen([path, *args])
+        except Exception:
+            pass
+
+    def _launch_selected(self):
+        names = self._selected_app_names()
+        apps = self._all_apps()
+        relaunch = self.chk_relaunch.isChecked()
+        for app in apps:
+            if app.get("name") in names:
+                self._launch_app(app, relaunch)
+        self._refresh()
+
+    def _stop_selected(self):
+        names = self._selected_app_names()
+        apps = self._all_apps()
+        for app in apps:
+            if app.get("name") in names:
+                for p in self._match_processes(app):
+                    try:
+                        p.terminate()
+                    except Exception:
+                        continue
+        self._refresh()
+
+    def _remove_selected(self):
+        names = set(self._selected_app_names())
+        apps = self.settings.data.get("apps", {}) or {}
+        custom = apps.get("custom", []) or []
+        apps["custom"] = [a for a in custom if a.get("name") not in names]
+        self.settings.data["apps"] = apps
+        self.settings.save()
+        self._refresh()
 
 
 # ---------------------

@@ -167,5 +167,53 @@
       "singbox": "SagerNet/sing-box",
       "clash": "MetaCubeX/mihomo"
     }
+  },
+  "apps": {
+    "important": [
+      {
+        "name": "OBS",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "Discord",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "Chrome",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "Steam",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "Spotify",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "TeamSpeak",
+        "path": "",
+        "args": "",
+        "enabled": true
+      },
+      {
+        "name": "Telegram",
+        "path": "",
+        "args": "",
+        "enabled": true
+      }
+    ],
+    "custom": [],
+    "last_launch": {}
   }
 }

@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from core.engine_manager import EngineManager
 from core.settings_manager import SettingsManager
 from logger import Logger
+from ui.pages import AppLauncherPage, DashboardPage, VPNManagerPage, AppRoutingPage, SettingsPage
 from ui.pages import DashboardPage, VPNManagerPage, AppRoutingPage, SettingsPage
 
 
@@ -50,15 +51,18 @@ class MainWindow(QtWidgets.QMainWindow):
         nav_layout.addWidget(logo)
 
         self.btn_dashboard = QtWidgets.QPushButton("Dashboard")
+        self.btn_launcher = QtWidgets.QPushButton("App Launcher")
         self.btn_vpn = QtWidgets.QPushButton("VPN Manager")
         self.btn_route = QtWidgets.QPushButton("App Routing")
         self.btn_settings = QtWidgets.QPushButton("Settings")
 
+        for b in (self.btn_dashboard, self.btn_launcher, self.btn_vpn, self.btn_route, self.btn_settings):
         for b in (self.btn_dashboard, self.btn_vpn, self.btn_route, self.btn_settings):
             b.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
             b.setMinimumHeight(44)
 
         nav_layout.addWidget(self.btn_dashboard)
+        nav_layout.addWidget(self.btn_launcher)
         nav_layout.addWidget(self.btn_vpn)
         nav_layout.addWidget(self.btn_route)
         nav_layout.addWidget(self.btn_settings)
@@ -73,6 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
             go_to_settings_cb=self._go_settings,
             is_refresh_paused_cb=self._is_refresh_paused,
         )
+        self.page_launcher = AppLauncherPage(self.engine, self.settings)
         self.page_vpn = VPNManagerPage(self.engine, self.settings)
         self.page_route = AppRoutingPage(
             self.engine,
@@ -82,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.page_settings = SettingsPage(self.engine, self.settings)
 
         self.stack.addWidget(self.page_dashboard)
+        self.stack.addWidget(self.page_launcher)
         self.stack.addWidget(self.page_vpn)
         self.stack.addWidget(self.page_route)
         self.stack.addWidget(self.page_settings)
@@ -93,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Wiring
         self.btn_dashboard.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_dashboard))
+        self.btn_launcher.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_launcher))
         self.btn_vpn.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_vpn))
         self.btn_route.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_route))
         self.btn_settings.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_settings))
@@ -107,6 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         view_menu = menu.addMenu("View")
         view_menu.addAction("Dashboard", lambda: self.stack.setCurrentWidget(self.page_dashboard))
+        view_menu.addAction("App Launcher", lambda: self.stack.setCurrentWidget(self.page_launcher))
         view_menu.addAction("VPN Manager", lambda: self.stack.setCurrentWidget(self.page_vpn))
         view_menu.addAction("App Routing", lambda: self.stack.setCurrentWidget(self.page_route))
         view_menu.addAction("Settings", lambda: self.stack.setCurrentWidget(self.page_settings))
