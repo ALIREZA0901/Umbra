@@ -930,6 +930,7 @@ class AppLauncherPage(QtWidgets.QWidget):
 
         actions = QtWidgets.QHBoxLayout()
         self.btn_refresh = QtWidgets.QPushButton("Refresh")
+        self.btn_add_running = QtWidgets.QPushButton("Add Running Apps")
         self.btn_launch = QtWidgets.QPushButton("Launch Selected")
         self.btn_stop = QtWidgets.QPushButton("Stop Selected")
         self.btn_launch_enabled = QtWidgets.QPushButton("Launch Enabled")
@@ -938,12 +939,17 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_remove = QtWidgets.QPushButton("Remove Selected")
         for b in (
             self.btn_refresh,
+            self.btn_add_running,
             self.btn_launch,
             self.btn_stop,
             self.btn_launch_enabled,
             self.btn_stop_enabled,
             self.btn_remove,
         ):
+            b.setMinimumHeight(40)
+
+        actions.addWidget(self.btn_refresh)
+        actions.addWidget(self.btn_add_running)
         self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
         self.btn_remove = QtWidgets.QPushButton("Remove Selected")
         for b in (self.btn_refresh, self.btn_launch, self.btn_stop, self.btn_remove):
@@ -970,6 +976,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_browse.clicked.connect(self._browse_exe)
         self.btn_add_app.clicked.connect(self._add_app)
         self.btn_refresh.clicked.connect(self._refresh)
+        self.btn_add_running.clicked.connect(self._add_running_apps)
         self.btn_launch.clicked.connect(self._launch_selected)
         self.btn_stop.clicked.connect(self._stop_selected)
         self.btn_launch_enabled.clicked.connect(self._launch_enabled)
@@ -1061,6 +1068,43 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.in_app_args.clear()
         self.in_app_group.clear()
         self._refresh()
+
+    def _add_running_apps(self):
+        apps = self.settings.data.setdefault("apps", {})
+        custom = apps.setdefault("custom", [])
+        existing_names = {str(a.get("name", "")).lower() for a in custom}
+
+        added = 0
+        for p in psutil.process_iter(attrs=["name", "exe"]):
+            try:
+                name = (p.info.get("name") or "").strip()
+                exe = (p.info.get("exe") or "").strip()
+                if not name or not exe:
+                    continue
+                lower_exe = exe.lower()
+                if "\\windows\\system32" in lower_exe or "\\windows\\syswow64" in lower_exe:
+                    continue
+                if name.lower() in existing_names:
+                    continue
+                custom.append(
+                    {
+                        "name": name,
+                        "path": exe,
+                        "args": "",
+                        "enabled": True,
+                        "type": "custom",
+                        "group": "Detected",
+                    }
+                )
+                existing_names.add(name.lower())
+                added += 1
+            except Exception:
+                continue
+
+        if added:
+            self.settings.save()
+        self._refresh()
+        QtWidgets.QMessageBox.information(self, "Detected Apps", f"Added {added} running app(s).")
 
     def _selected_app_names(self) -> List[str]:
         items = self.tbl_apps.selectedItems()
