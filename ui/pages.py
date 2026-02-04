@@ -937,6 +937,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_stop_enabled = QtWidgets.QPushButton("Stop Enabled")
         self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
         self.btn_remove = QtWidgets.QPushButton("Remove Selected")
+        self.btn_move_group = QtWidgets.QPushButton("Move to Group")
         for b in (
             self.btn_refresh,
             self.btn_add_running,
@@ -944,6 +945,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.btn_stop,
             self.btn_launch_enabled,
             self.btn_stop_enabled,
+            self.btn_move_group,
             self.btn_remove,
         ):
             b.setMinimumHeight(40)
@@ -961,6 +963,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         actions.addWidget(self.btn_launch_enabled)
         actions.addWidget(self.btn_stop_enabled)
         actions.addWidget(self.chk_relaunch)
+        actions.addWidget(self.btn_move_group)
         actions.addStretch(1)
         actions.addWidget(self.btn_remove)
 
@@ -983,6 +986,9 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_stop_enabled.clicked.connect(self._stop_enabled)
         self.btn_launch_group.clicked.connect(self._launch_group)
         self.btn_stop_group.clicked.connect(self._stop_group)
+        self.btn_move_group.clicked.connect(self._move_selected_to_group)
+        self.btn_remove.clicked.connect(self._remove_selected)
+        self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
@@ -1117,6 +1123,12 @@ class AppLauncherPage(QtWidgets.QWidget):
                 names.append(name_item.text())
         return names
 
+    def _selected_apps(self) -> List[Dict[str, Any]]:
+        names = set(self._selected_app_names())
+        if not names:
+            return []
+        return [app for app in self._all_apps() if app.get("name") in names]
+
     def _find_running(self) -> Dict[str, bool]:
         running = {}
         for p in psutil.process_iter(attrs=["name", "exe"]):
@@ -1205,6 +1217,25 @@ class AppLauncherPage(QtWidgets.QWidget):
                         p.terminate()
                     except Exception:
                         continue
+        self._refresh()
+
+    def _move_selected_to_group(self):
+        apps = self._selected_apps()
+        if not apps:
+            return
+        group, ok = QtWidgets.QInputDialog.getText(self, "Move to Group", "Group name:")
+        if not ok:
+            return
+        group = group.strip() or "Default"
+        store = self.settings.data.get("apps", {}) or {}
+        for app in store.get("important", []):
+            if app.get("name") in {a.get("name") for a in apps}:
+                app["group"] = group
+        for app in store.get("custom", []):
+            if app.get("name") in {a.get("name") for a in apps}:
+                app["group"] = group
+        self.settings.data["apps"] = store
+        self.settings.save()
         self._refresh()
 
     def _remove_selected(self):
