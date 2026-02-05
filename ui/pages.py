@@ -1157,9 +1157,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             try:
                 pname = (p.info.get("name") or "").lower()
                 pexe = (p.info.get("exe") or "").lower()
-                if path and pexe == path:
-                    matches.append(p)
-                elif name and pname == name:
+                if (path and pexe == path) or (name and pname == name):
                     matches.append(p)
             except Exception:
                 continue
@@ -1533,7 +1531,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         # interfaces
         self.cmb_iface.clear()
         self.cmb_iface.addItem("AUTO")
-        for name in psutil.net_if_addrs().keys():
+        for name in psutil.net_if_addrs():
             self.cmb_iface.addItem(name)
 
         self._load_app_rule()
@@ -1872,7 +1870,7 @@ class SettingsPage(QtWidgets.QWidget):
         self.lbl_opt.setText(f"Status: done (top: {ranked[0][1] if ranked else '-'})")
         self.tbl_opt.setRowCount(0)
 
-        for idx, name, host, ping, loss, jitter in ranked[:10]:
+        for _, name, host, ping, loss, jitter in ranked[:10]:
             r = self.tbl_opt.rowCount()
             self.tbl_opt.insertRow(r)
             self.tbl_opt.setItem(r, 0, QtWidgets.QTableWidgetItem(str(name)))

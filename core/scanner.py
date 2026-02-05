@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import psutil
 
@@ -19,9 +19,6 @@ class NetworkScanner:
     Lightweight process/network scanner.
     NOTE: This does NOT run any bandwidth tests. It only reads OS counters (psutil).
     """
-
-    def __init__(self):
-        self._last_proc_io: Dict[int, Tuple[int, int, float]] = {}
 
     def list_processes(self, only_network_active: bool = False) -> List[ProcNetInfo]:
         out: List[ProcNetInfo] = []
