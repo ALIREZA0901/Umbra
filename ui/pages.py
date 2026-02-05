@@ -1002,6 +1002,9 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_set_profile.clicked.connect(self._set_profile_for_selected)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
+        self.tbl_apps.itemSelectionChanged.connect(self._save_selected_cache)
+        self.cmb_group.currentTextChanged.connect(self._on_group_changed)
+        self.chk_filter_group.toggled.connect(self._refresh)
         self.cmb_group.currentTextChanged.connect(self._on_group_changed)
         self.chk_filter_group.toggled.connect(self._refresh)
         self.btn_remove.clicked.connect(self._remove_selected)
@@ -1055,6 +1058,9 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.tbl_apps.setItem(row, 7, QtWidgets.QTableWidgetItem(run_state))
             self.tbl_apps.setItem(row, 8, QtWidgets.QTableWidgetItem(app_type))
         self.tbl_apps.blockSignals(False)
+        self._restore_selected_cache()
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
         self.tbl_apps.resizeColumnsToContents()
         self._refresh_groups(sorted(groups))
             self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(str(last_launch)))
@@ -1165,6 +1171,23 @@ class AppLauncherPage(QtWidgets.QWidget):
         if not names:
             return []
         return [app for app in self._all_apps() if app.get("name") in names]
+
+    def _save_selected_cache(self):
+        apps = self.settings.data.setdefault("apps", {})
+        apps["last_selected"] = self._selected_app_names()
+        self.settings.save()
+
+    def _restore_selected_cache(self):
+        saved = (self.settings.data.get("apps", {}) or {}).get("last_selected", []) or []
+        if not saved:
+            return
+        wanted = set(str(x) for x in saved)
+        self.tbl_apps.blockSignals(True)
+        for row in range(self.tbl_apps.rowCount()):
+            name_item = self.tbl_apps.item(row, 1)
+            if name_item and name_item.text() in wanted:
+                self.tbl_apps.selectRow(row)
+        self.tbl_apps.blockSignals(False)
 
     def _find_running(self) -> Dict[str, bool]:
         running = {}

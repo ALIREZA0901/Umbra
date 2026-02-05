@@ -256,6 +256,7 @@ def _default_settings() -> Dict[str, Any]:
             "custom": [],
             "last_launch": {},
             "last_group": "All groups",
+            "last_selected": [],
                 {"name": "OBS", "path": "", "args": "", "enabled": True},
                 {"name": "Discord", "path": "", "args": "", "enabled": True},
                 {"name": "Chrome", "path": "", "args": "", "enabled": True},
