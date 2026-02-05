@@ -5,9 +5,8 @@ import json
 import os
 import re
 import time
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse, parse_qs, unquote
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 
@@ -245,28 +244,11 @@ def _default_settings() -> Dict[str, Any]:
                 {"name": "Spotify", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
                 {"name": "TeamSpeak", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
                 {"name": "Telegram", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
-                {"name": "OBS", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "Discord", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "Chrome", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "Steam", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "Spotify", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "TeamSpeak", "path": "", "args": "", "enabled": True, "group": "Default"},
-                {"name": "Telegram", "path": "", "args": "", "enabled": True, "group": "Default"},
             ],
             "custom": [],
             "last_launch": {},
             "last_group": "All groups",
             "last_selected": [],
-                {"name": "OBS", "path": "", "args": "", "enabled": True},
-                {"name": "Discord", "path": "", "args": "", "enabled": True},
-                {"name": "Chrome", "path": "", "args": "", "enabled": True},
-                {"name": "Steam", "path": "", "args": "", "enabled": True},
-                {"name": "Spotify", "path": "", "args": "", "enabled": True},
-                {"name": "TeamSpeak", "path": "", "args": "", "enabled": True},
-                {"name": "Telegram", "path": "", "args": "", "enabled": True},
-            ],
-            "custom": [],
-            "last_launch": {},
         },
     }
 

@@ -8,7 +8,6 @@ from core.engine_manager import EngineManager
 from core.settings_manager import SettingsManager
 from logger import Logger
 from ui.pages import AppLauncherPage, DashboardPage, VPNManagerPage, AppRoutingPage, SettingsPage
-from ui.pages import DashboardPage, VPNManagerPage, AppRoutingPage, SettingsPage
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -57,7 +56,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_settings = QtWidgets.QPushButton("Settings")
 
         for b in (self.btn_dashboard, self.btn_launcher, self.btn_vpn, self.btn_route, self.btn_settings):
-        for b in (self.btn_dashboard, self.btn_vpn, self.btn_route, self.btn_settings):
             b.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
             b.setMinimumHeight(44)
 
