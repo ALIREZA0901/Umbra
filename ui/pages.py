@@ -921,12 +921,14 @@ class AppLauncherPage(QtWidgets.QWidget):
         group_actions = QtWidgets.QHBoxLayout()
         self.cmb_group = QtWidgets.QComboBox()
         self.cmb_group.addItem("All groups")
+        self.chk_filter_group = QtWidgets.QCheckBox("Filter list by group")
         self.btn_launch_group = QtWidgets.QPushButton("Launch Group")
         self.btn_stop_group = QtWidgets.QPushButton("Stop Group")
         for b in (self.btn_launch_group, self.btn_stop_group):
             b.setMinimumHeight(36)
         group_actions.addWidget(QtWidgets.QLabel("Group:"))
         group_actions.addWidget(self.cmb_group, 1)
+        group_actions.addWidget(self.chk_filter_group)
         group_actions.addWidget(self.btn_launch_group)
         group_actions.addWidget(self.btn_stop_group)
 
@@ -991,6 +993,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_move_group.clicked.connect(self._move_selected_to_group)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
+        self.cmb_group.currentTextChanged.connect(self._on_group_changed)
+        self.chk_filter_group.toggled.connect(self._refresh)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.btn_remove.clicked.connect(self._remove_selected)
@@ -1006,6 +1010,7 @@ class AppLauncherPage(QtWidgets.QWidget):
     def _refresh(self):
         running = self._find_running()
         rows = self._all_apps()
+        group_filter = self._selected_group() if self.chk_filter_group.isChecked() else None
         self.tbl_apps.blockSignals(True)
         self.tbl_apps.setRowCount(0)
         groups = set()
@@ -1021,6 +1026,8 @@ class AppLauncherPage(QtWidgets.QWidget):
             last_launch = (self.settings.data.get("apps", {}) or {}).get("last_launch", {}).get(name, "-")
             run_state = "Yes" if running.get(name.lower()) else "No"
             groups.add(group)
+            if group_filter and group != group_filter:
+                continue
             run_state = "Yes" if running.get(name.lower()) else "No"
             groups.add(group)
             run_state = "Yes" if running.get(name.lower()) else "No"
@@ -1292,11 +1299,16 @@ class AppLauncherPage(QtWidgets.QWidget):
 
     def _refresh_groups(self, groups: List[str]):
         current = self.cmb_group.currentText()
+        saved = (self.settings.data.get("apps", {}) or {}).get("last_group", "All groups")
         self.cmb_group.blockSignals(True)
         self.cmb_group.clear()
         self.cmb_group.addItem("All groups")
         for group in groups:
             self.cmb_group.addItem(group)
+        if current and (current in groups or current == "All groups"):
+            self.cmb_group.setCurrentText(current)
+        elif saved and (saved in groups or saved == "All groups"):
+            self.cmb_group.setCurrentText(saved)
         if current and current in groups:
             self.cmb_group.setCurrentText(current)
         self.cmb_group.blockSignals(False)
@@ -1306,6 +1318,11 @@ class AppLauncherPage(QtWidgets.QWidget):
         if group == "All groups":
             return None
         return group
+
+    def _on_group_changed(self, group: str):
+        apps = self.settings.data.setdefault("apps", {})
+        apps["last_group"] = group
+        self.settings.save()
 
     def _launch_group(self):
         group = self._selected_group()
