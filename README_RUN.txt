@@ -25,6 +25,7 @@ Notes:
 - Engine Start/Stop is fixed: Stop Engine stops all threads; Exit closes fully.
 - System tray behavior: Settings -> Behavior (minimize to tray or exit).
 - Auto refresh: Settings -> Behavior (interval + pause when minimized).
+- App Launcher: add apps, detect running apps, group/move them, filter by group, assign per-app profile, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
 - App Launcher: add apps, detect running apps, group/move them, filter by group, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
 - App Launcher: add apps, detect running apps, group/move them, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
 - App Launcher: add apps, detect running apps, group/move them, enable/disable, launch/stop selected, enabled, or group, and refresh running status.

@@ -175,6 +175,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -183,6 +185,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -191,6 +195,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -199,6 +205,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -207,6 +215,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -215,6 +225,8 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
         "enabled": true
       },
@@ -223,12 +235,16 @@
         "path": "",
         "args": "",
         "enabled": true,
+        "group": "Default",
+        "profile": "Auto"
         "group": "Default"
       }
     ],
     "custom": [],
     "last_launch": {},
     "last_group": "All groups"
+  }
+}
         "enabled": true
       }
     ],

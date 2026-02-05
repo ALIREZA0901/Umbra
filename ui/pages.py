@@ -904,6 +904,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         form.addWidget(self.in_app_group, 1)
         form.addWidget(self.btn_add_app, 0)
 
+        self.tbl_apps = QtWidgets.QTableWidget(0, 9)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Profile", "Last Launch", "Running", "Type"])
         self.tbl_apps = QtWidgets.QTableWidget(0, 8)
         self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Last Launch", "Running", "Type"])
         self.tbl_apps = QtWidgets.QTableWidget(0, 7)
@@ -926,11 +928,17 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_stop_group = QtWidgets.QPushButton("Stop Group")
         for b in (self.btn_launch_group, self.btn_stop_group):
             b.setMinimumHeight(36)
+        self.cmb_app_profile = QtWidgets.QComboBox()
+        self.cmb_app_profile.addItems(["Auto", "Gaming", "Streaming", "Work", "Custom"])
+        self.btn_set_profile = QtWidgets.QPushButton("Set Profile")
+        self.btn_set_profile.setMinimumHeight(36)
         group_actions.addWidget(QtWidgets.QLabel("Group:"))
         group_actions.addWidget(self.cmb_group, 1)
         group_actions.addWidget(self.chk_filter_group)
         group_actions.addWidget(self.btn_launch_group)
         group_actions.addWidget(self.btn_stop_group)
+        group_actions.addWidget(self.cmb_app_profile)
+        group_actions.addWidget(self.btn_set_profile)
 
         actions = QtWidgets.QHBoxLayout()
         self.btn_refresh = QtWidgets.QPushButton("Refresh")
@@ -991,6 +999,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.btn_launch_group.clicked.connect(self._launch_group)
         self.btn_stop_group.clicked.connect(self._stop_group)
         self.btn_move_group.clicked.connect(self._move_selected_to_group)
+        self.btn_set_profile.clicked.connect(self._set_profile_for_selected)
         self.btn_remove.clicked.connect(self._remove_selected)
         self.tbl_apps.itemChanged.connect(self._on_item_changed)
         self.cmb_group.currentTextChanged.connect(self._on_group_changed)
@@ -1023,6 +1032,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             app_type = app.get("type", "important")
             enabled = bool(app.get("enabled", True))
             group = app.get("group", "Default") or "Default"
+            profile = app.get("profile", "Auto")
             last_launch = (self.settings.data.get("apps", {}) or {}).get("last_launch", {}).get(name, "-")
             run_state = "Yes" if running.get(name.lower()) else "No"
             groups.add(group)
@@ -1040,6 +1050,13 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(path)))
             self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(str(args)))
             self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(str(group)))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(str(profile)))
+            self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(str(last_launch)))
+            self.tbl_apps.setItem(row, 7, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 8, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
             self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(str(last_launch)))
             self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(run_state))
             self.tbl_apps.setItem(row, 7, QtWidgets.QTableWidgetItem(app_type))
@@ -1081,6 +1098,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             QtWidgets.QMessageBox.warning(self, "Invalid Path", "The selected executable does not exist.")
             return
 
+        app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom", "group": group, "profile": "Auto"}
         app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom", "group": group}
         app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom"}
         apps = self.settings.data.setdefault("apps", {}).setdefault("custom", [])
@@ -1118,6 +1136,7 @@ class AppLauncherPage(QtWidgets.QWidget):
                         "enabled": True,
                         "type": "custom",
                         "group": "Detected",
+                        "profile": "Auto",
                     }
                 )
                 existing_names.add(name.lower())
@@ -1192,6 +1211,9 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
         args = _split_args(app.get("args", ""))
         try:
+            prof = app.get("profile", "Auto")
+            if prof and prof != "Auto":
+                self.settings.set_active_profile(prof)
             subprocess.Popen([path, *args])
             self._mark_last_launch(app.get("name", ""))
         except Exception:
@@ -1256,6 +1278,23 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.settings.save()
         self._refresh()
 
+    def _set_profile_for_selected(self):
+        apps = self._selected_apps()
+        if not apps:
+            return
+        profile = self.cmb_app_profile.currentText()
+        store = self.settings.data.get("apps", {}) or {}
+        names = {a.get("name") for a in apps}
+        for app in store.get("important", []):
+            if app.get("name") in names:
+                app["profile"] = profile
+        for app in store.get("custom", []):
+            if app.get("name") in names:
+                app["profile"] = profile
+        self.settings.data["apps"] = store
+        self.settings.save()
+        self._refresh()
+
     def _remove_selected(self):
         names = set(self._selected_app_names())
         apps = self.settings.data.get("apps", {}) or {}
@@ -1270,6 +1309,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
         row = item.row()
         name_item = self.tbl_apps.item(row, 1)
+        type_item = self.tbl_apps.item(row, 8)
         type_item = self.tbl_apps.item(row, 7)
         type_item = self.tbl_apps.item(row, 6)
         type_item = self.tbl_apps.item(row, 5)

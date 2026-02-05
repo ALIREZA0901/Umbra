@@ -238,6 +238,13 @@ def _default_settings() -> Dict[str, Any]:
         },
         "apps": {
             "important": [
+                {"name": "OBS", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "Discord", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "Chrome", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "Steam", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "Spotify", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "TeamSpeak", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
+                {"name": "Telegram", "path": "", "args": "", "enabled": True, "group": "Default", "profile": "Auto"},
                 {"name": "OBS", "path": "", "args": "", "enabled": True, "group": "Default"},
                 {"name": "Discord", "path": "", "args": "", "enabled": True, "group": "Default"},
                 {"name": "Chrome", "path": "", "args": "", "enabled": True, "group": "Default"},
