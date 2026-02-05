@@ -904,6 +904,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         form.addWidget(self.in_app_group, 1)
         form.addWidget(self.btn_add_app, 0)
 
+        self.tbl_apps = QtWidgets.QTableWidget(0, 8)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Last Launch", "Running", "Type"])
         self.tbl_apps = QtWidgets.QTableWidget(0, 7)
         self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Running", "Type"])
         form.addWidget(self.btn_add_app, 0)
@@ -1016,6 +1018,9 @@ class AppLauncherPage(QtWidgets.QWidget):
             app_type = app.get("type", "important")
             enabled = bool(app.get("enabled", True))
             group = app.get("group", "Default") or "Default"
+            last_launch = (self.settings.data.get("apps", {}) or {}).get("last_launch", {}).get(name, "-")
+            run_state = "Yes" if running.get(name.lower()) else "No"
+            groups.add(group)
             run_state = "Yes" if running.get(name.lower()) else "No"
             groups.add(group)
             run_state = "Yes" if running.get(name.lower()) else "No"
@@ -1028,6 +1033,12 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(path)))
             self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(str(args)))
             self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(str(group)))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(str(last_launch)))
+            self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 7, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
             self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(run_state))
             self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(app_type))
         self.tbl_apps.blockSignals(False)
@@ -1252,6 +1263,7 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
         row = item.row()
         name_item = self.tbl_apps.item(row, 1)
+        type_item = self.tbl_apps.item(row, 7)
         type_item = self.tbl_apps.item(row, 6)
         type_item = self.tbl_apps.item(row, 5)
         if not name_item or not type_item:
