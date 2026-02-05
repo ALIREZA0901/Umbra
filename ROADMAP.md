@@ -13,7 +13,7 @@
 - **Spec**: انتخاب شبکه (Modem/Mobile/VDSL) برای هر اپ + نمایش Gateway/Subnet/Interface.
 - **وضعیت فعلی**: صفحه App Routing ایجاد شده و route mapها ذخیره می‌شوند.
 - **اقدام بعدی**:
-  - تکمیل نمایش اطلاعات Interface (Gateway/Subnet)
+  - تکمیل نمایش اطلاعات Interface (Gateway/Subnet) [انجام شد]
   - پیاده‌سازی Policy Routing واقعی در ویندوز (WFP/Netsh/route rules)
   - پروفایل سریع برای OBS
 

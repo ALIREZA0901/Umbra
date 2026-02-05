@@ -4,8 +4,10 @@ import webbrowser
 import os
 import platform
 import statistics
+import socket
 import subprocess
 import time
+import ipaddress
 from typing import Any, Callable, Dict, List, Optional
 
 import psutil
@@ -1437,6 +1439,9 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.lbl_current = QtWidgets.QLabel("Current: -")
         self.lbl_current.setWordWrap(True)
 
+        self.lbl_iface_info = QtWidgets.QLabel("Interface info: -")
+        self.lbl_iface_info.setWordWrap(True)
+
         self.btn_apply = QtWidgets.QPushButton("Apply")
         self.btn_apply.setMinimumHeight(46)
 
@@ -1445,6 +1450,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         gr.addRow("Interface", self.cmb_iface)
         gr.addRow("Priority", self.cmb_prio)
         gr.addRow("Selected App", self.lbl_current)
+        gr.addRow("Interface info", self.lbl_iface_info)
         gr.addRow("", self.btn_apply)
 
         top.addWidget(gb_list, 1)
@@ -1457,6 +1463,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.chk_active_only.toggled.connect(self._refresh)
         self.cmb_app_filter.currentIndexChanged.connect(self._refresh)
         self.lst_apps.currentItemChanged.connect(lambda *_: self._load_app_rule())
+        self.cmb_iface.currentTextChanged.connect(lambda *_: self._update_iface_info())
         self.btn_apply.clicked.connect(self._apply)
 
     def refresh_now(self):
@@ -1538,12 +1545,14 @@ class AppRoutingPage(QtWidgets.QWidget):
             self.cmb_vpn.addItem(f"{i}: {c.get('name','')}")
 
         # interfaces
+        self._iface_meta = self._collect_interface_meta()
         self.cmb_iface.clear()
         self.cmb_iface.addItem("AUTO")
-        for name in psutil.net_if_addrs():
+        for name in self._iface_meta:
             self.cmb_iface.addItem(name)
 
         self._load_app_rule()
+        self._update_iface_info()
 
     def _selected_app_key(self) -> Optional[str]:
         item = self.lst_apps.currentItem()
@@ -1558,6 +1567,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         key = self._selected_app_key()
         if not key:
             self.lbl_current.setText("Current: -")
+            self._update_iface_info()
             return
 
         self.lbl_current.setText(f"Current: {key}")
@@ -1577,6 +1587,90 @@ class AppRoutingPage(QtWidgets.QWidget):
         self._select_combo_by_prefix(self.cmb_vpn, str(vpn_val))
         self._select_combo_exact(self.cmb_iface, if_val)
         self._select_combo_exact(self.cmb_prio, pr_val)
+        self._update_iface_info()
+
+    def _collect_interface_meta(self) -> Dict[str, Dict[str, str]]:
+        iface_addrs = psutil.net_if_addrs() or {}
+        gw_by_iface = self._default_gateways_by_iface()
+        meta: Dict[str, Dict[str, str]] = {}
+        for iface, entries in iface_addrs.items():
+            ipv4 = "-"
+            subnet = "-"
+            for a in entries:
+                if getattr(a, "family", None) != socket.AF_INET:
+                    continue
+                if a.address:
+                    ipv4 = str(a.address)
+                if a.netmask:
+                    try:
+                        subnet = str(ipaddress.IPv4Network(f"0.0.0.0/{a.netmask}").prefixlen)
+                        subnet = f"/{subnet}"
+                    except Exception:
+                        subnet = str(a.netmask)
+                break
+            meta[iface] = {
+                "ip": ipv4,
+                "subnet": subnet,
+                "gateway": gw_by_iface.get(iface, "-"),
+            }
+        return dict(sorted(meta.items(), key=lambda kv: kv[0].lower()))
+
+    def _default_gateways_by_iface(self) -> Dict[str, str]:
+        gw: Dict[str, str] = {}
+        try:
+            sys_name = platform.system().lower()
+            if sys_name.startswith("linux"):
+                out = subprocess.check_output(["ip", "route", "show", "default"], text=True, stderr=subprocess.DEVNULL)
+                for line in out.splitlines():
+                    parts = line.split()
+                    if "via" in parts and "dev" in parts:
+                        gw_ip = parts[parts.index("via") + 1]
+                        iface = parts[parts.index("dev") + 1]
+                        if iface and gw_ip and iface not in gw:
+                            gw[iface] = gw_ip
+            elif sys_name.startswith("win"):
+                out = subprocess.check_output(["route", "print", "-4"], text=True, stderr=subprocess.DEVNULL)
+                in_defaults = False
+                for line in out.splitlines():
+                    t = line.strip()
+                    if t.startswith("Active Routes:"):
+                        in_defaults = True
+                        continue
+                    if in_defaults and t.startswith("===="):
+                        break
+                    if not in_defaults or not t or not t[0].isdigit():
+                        continue
+                    cols = t.split()
+                    if len(cols) >= 4 and cols[0] == "0.0.0.0" and cols[1] == "0.0.0.0":
+                        gw.setdefault(cols[3], cols[2])
+            elif sys_name.startswith("darwin"):
+                out = subprocess.check_output(["route", "-n", "get", "default"], text=True, stderr=subprocess.DEVNULL)
+                default_gw = ""
+                for line in out.splitlines():
+                    line = line.strip()
+                    if line.startswith("gateway:"):
+                        default_gw = line.split(":", 1)[1].strip()
+                    elif line.startswith("interface:"):
+                        iface = line.split(":", 1)[1].strip()
+                        if iface and default_gw:
+                            gw[iface] = default_gw
+        except Exception:
+            return gw
+        return gw
+
+    def _update_iface_info(self):
+        iface = self.cmb_iface.currentText() if hasattr(self, "cmb_iface") else "AUTO"
+        if iface == "AUTO":
+            self.lbl_iface_info.setText("Interface info: AUTO (system default route)")
+            return
+        meta = getattr(self, "_iface_meta", {}) or {}
+        info = meta.get(iface)
+        if not info:
+            self.lbl_iface_info.setText("Interface info: -")
+            return
+        self.lbl_iface_info.setText(
+            f"Interface info: IP {info.get('ip','-')} | Subnet {info.get('subnet','-')} | Gateway {info.get('gateway','-')}"
+        )
 
     def _apply(self):
         key = self._selected_app_key()
