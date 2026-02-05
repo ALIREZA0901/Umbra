@@ -712,7 +712,7 @@ class VPNManagerPage(QtWidgets.QWidget):
 
         # left: configs
         gb_cfg = QtWidgets.QGroupBox("Configs")
-        l = QtWidgets.QVBoxLayout(gb_cfg)
+        cfg_layout = QtWidgets.QVBoxLayout(gb_cfg)
 
         self.txt_import = QtWidgets.QTextEdit()
         self.txt_import.setPlaceholderText("Paste configs here (links, sing-box JSON, WireGuard ini)...")
@@ -730,10 +730,10 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.btn_set_active = QtWidgets.QPushButton("Use Selected Config for Active Profile")
         self.btn_set_active.setMinimumHeight(44)
 
-        l.addWidget(self.txt_import)
-        l.addWidget(self.btn_import)
-        l.addWidget(self.tbl_cfg, 1)
-        l.addWidget(self.btn_set_active)
+        cfg_layout.addWidget(self.txt_import)
+        cfg_layout.addWidget(self.btn_import)
+        cfg_layout.addWidget(self.tbl_cfg, 1)
+        cfg_layout.addWidget(self.btn_set_active)
 
         # right: subscriptions + clipboard
         gb_sub = QtWidgets.QGroupBox("Subscriptions & Clipboard")
@@ -1738,11 +1738,11 @@ class SettingsPage(QtWidgets.QWidget):
 
         # License page
         self.page_lic = QtWidgets.QWidget()
-        l = QtWidgets.QVBoxLayout(self.page_lic)
+        lic_layout = QtWidgets.QVBoxLayout(self.page_lic)
         lab = QtWidgets.QLabel("License system is prepared but DISABLED in this build.\n(Reserved for future update)")
         lab.setWordWrap(True)
         lab.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        l.addWidget(lab)
+        lic_layout.addWidget(lab)
 
         self.stack.addWidget(self.page_dns)
         self.stack.addWidget(self.page_lb)
