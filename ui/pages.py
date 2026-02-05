@@ -1445,6 +1445,9 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.btn_apply = QtWidgets.QPushButton("Apply")
         self.btn_apply.setMinimumHeight(46)
 
+        self.btn_obs_quick = QtWidgets.QPushButton("Apply OBS Quick Profile")
+        self.btn_obs_quick.setMinimumHeight(40)
+
         gr.addRow("DNS", self.cmb_dns)
         gr.addRow("VPN Route", self.cmb_vpn)
         gr.addRow("Interface", self.cmb_iface)
@@ -1452,6 +1455,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         gr.addRow("Selected App", self.lbl_current)
         gr.addRow("Interface info", self.lbl_iface_info)
         gr.addRow("", self.btn_apply)
+        gr.addRow("", self.btn_obs_quick)
 
         top.addWidget(gb_list, 1)
         top.addWidget(gb_route, 2)
@@ -1465,6 +1469,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.lst_apps.currentItemChanged.connect(lambda *_: self._load_app_rule())
         self.cmb_iface.currentTextChanged.connect(lambda *_: self._update_iface_info())
         self.btn_apply.clicked.connect(self._apply)
+        self.btn_obs_quick.clicked.connect(self._apply_obs_quick_profile)
 
     def refresh_now(self):
         self._refresh()
@@ -1689,6 +1694,33 @@ class AppRoutingPage(QtWidgets.QWidget):
 
         self.settings.save()
         QtWidgets.QMessageBox.information(self, "Applied", "Routing saved (Apply).")
+
+    def _apply_obs_quick_profile(self):
+        dns_val = self._extract_setting(self.cmb_dns)
+        vpn_val = self._extract_setting(self.cmb_vpn)
+        iface_val = self.cmb_iface.currentText()
+        prio_val = self.cmb_prio.currentText() or "High"
+        if prio_val == "Auto":
+            prio_val = "High"
+
+        dns_map = self.settings.data.setdefault("app_dns_routes", {})
+        vpn_map = self.settings.data.setdefault("app_vpn_routes", {})
+        if_map = self.settings.data.setdefault("app_interfaces", {})
+        pr_map = self.settings.data.setdefault("app_priorities", {})
+
+        obs_keys = ("obs64.exe", "obs.exe")
+        for key in obs_keys:
+            dns_map[key] = dns_val
+            vpn_map[key] = vpn_val
+            if_map[key] = iface_val
+            pr_map[key] = prio_val
+
+        self.settings.save()
+        QtWidgets.QMessageBox.information(
+            self,
+            "OBS Quick Profile",
+            "Quick profile saved for OBS (obs64.exe / obs.exe).",
+        )
 
     def _extract_setting(self, cmb: QtWidgets.QComboBox) -> str:
         text = cmb.currentText()

@@ -15,7 +15,7 @@
 - **اقدام بعدی**:
   - تکمیل نمایش اطلاعات Interface (Gateway/Subnet) [انجام شد]
   - پیاده‌سازی Policy Routing واقعی در ویندوز (WFP/Netsh/route rules)
-  - پروفایل سریع برای OBS
+  - پروفایل سریع برای OBS [انجام شد]
 
 ## 3) DNS Settings (Per App)
 - **Spec**: تنظیم DNS برای هر اپ + preset + apply/reset.
