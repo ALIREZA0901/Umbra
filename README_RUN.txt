@@ -26,6 +26,14 @@ Notes:
 - System tray behavior: Settings -> Behavior (minimize to tray or exit).
 - Auto refresh: Settings -> Behavior (interval + pause when minimized).
 - App Launcher: add apps, detect running apps, group/move them, filter by group, assign per-app profile, track last launch, remember selected apps, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, detect running apps, group/move them, filter by group, assign per-app profile, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, detect running apps, group/move them, filter by group, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, detect running apps, group/move them, track last launch, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, detect running apps, group/move them, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, detect running apps, group them, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, group them, enable/disable, launch/stop selected, enabled, or group, and refresh running status.
+- App Launcher: add apps, enable/disable, launch/stop selected or enabled, and refresh running status.
+- App Launcher: add apps, launch/stop selected, and refresh running status.
 - DNS list is prefilled (IR + GLOBAL). Add/remove in Settings -> DNS.
 - VPN manager supports: import from clipboard/paste, subscriptions, auto-detect type/core (for management). (Core-runner integration is planned for next phase.)
 

@@ -906,6 +906,16 @@ class AppLauncherPage(QtWidgets.QWidget):
 
         self.tbl_apps = QtWidgets.QTableWidget(0, 9)
         self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Profile", "Last Launch", "Running", "Type"])
+        self.tbl_apps = QtWidgets.QTableWidget(0, 8)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Last Launch", "Running", "Type"])
+        self.tbl_apps = QtWidgets.QTableWidget(0, 7)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Group", "Running", "Type"])
+        form.addWidget(self.btn_add_app, 0)
+
+        self.tbl_apps = QtWidgets.QTableWidget(0, 6)
+        self.tbl_apps.setHorizontalHeaderLabels(["Enabled", "Name", "Path", "Args", "Running", "Type"])
+        self.tbl_apps = QtWidgets.QTableWidget(0, 5)
+        self.tbl_apps.setHorizontalHeaderLabels(["Name", "Path", "Args", "Running", "Type"])
         self.tbl_apps.horizontalHeader().setStretchLastSection(True)
         self.tbl_apps.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.tbl_apps.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -954,6 +964,12 @@ class AppLauncherPage(QtWidgets.QWidget):
 
         actions.addWidget(self.btn_refresh)
         actions.addWidget(self.btn_add_running)
+        self.chk_relaunch = QtWidgets.QCheckBox("Relaunch if running")
+        self.btn_remove = QtWidgets.QPushButton("Remove Selected")
+        for b in (self.btn_refresh, self.btn_launch, self.btn_stop, self.btn_remove):
+            b.setMinimumHeight(40)
+
+        actions.addWidget(self.btn_refresh)
         actions.addWidget(self.btn_launch)
         actions.addWidget(self.btn_stop)
         actions.addWidget(self.btn_launch_enabled)
@@ -989,6 +1005,13 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.tbl_apps.itemSelectionChanged.connect(self._save_selected_cache)
         self.cmb_group.currentTextChanged.connect(self._on_group_changed)
         self.chk_filter_group.toggled.connect(self._refresh)
+        self.cmb_group.currentTextChanged.connect(self._on_group_changed)
+        self.chk_filter_group.toggled.connect(self._refresh)
+        self.btn_remove.clicked.connect(self._remove_selected)
+        self.tbl_apps.itemChanged.connect(self._on_item_changed)
+        self.btn_remove.clicked.connect(self._remove_selected)
+        self.tbl_apps.itemChanged.connect(self._on_item_changed)
+        self.btn_remove.clicked.connect(self._remove_selected)
 
     def _all_apps(self) -> List[Dict[str, Any]]:
         apps = self.settings.data.get("apps", {}) or {}
@@ -1018,6 +1041,9 @@ class AppLauncherPage(QtWidgets.QWidget):
             groups.add(group)
             if group_filter and group != group_filter:
                 continue
+            run_state = "Yes" if running.get(name.lower()) else "No"
+            groups.add(group)
+            run_state = "Yes" if running.get(name.lower()) else "No"
 
             enabled_item = QtWidgets.QTableWidgetItem("")
             enabled_item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
@@ -1035,6 +1061,30 @@ class AppLauncherPage(QtWidgets.QWidget):
         self._restore_selected_cache()
         self.tbl_apps.resizeColumnsToContents()
         self._refresh_groups(sorted(groups))
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(str(last_launch)))
+            self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 7, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 6, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+        self.tbl_apps.resizeColumnsToContents()
+        self._refresh_groups(sorted(groups))
+            self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 5, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.blockSignals(False)
+            run_state = "Yes" if running.get(name.lower()) else "No"
+
+            self.tbl_apps.setItem(row, 0, QtWidgets.QTableWidgetItem(str(name)))
+            self.tbl_apps.setItem(row, 1, QtWidgets.QTableWidgetItem(str(path)))
+            self.tbl_apps.setItem(row, 2, QtWidgets.QTableWidgetItem(str(args)))
+            self.tbl_apps.setItem(row, 3, QtWidgets.QTableWidgetItem(run_state))
+            self.tbl_apps.setItem(row, 4, QtWidgets.QTableWidgetItem(app_type))
+        self.tbl_apps.resizeColumnsToContents()
 
     def _browse_exe(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select application", "", "Executable (*.exe)")
@@ -1055,6 +1105,8 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
 
         app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom", "group": group, "profile": "Auto"}
+        app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom", "group": group}
+        app = {"name": name, "path": path, "args": args, "enabled": True, "type": "custom"}
         apps = self.settings.data.setdefault("apps", {}).setdefault("custom", [])
         apps.append(app)
         self.settings.save()
@@ -1109,6 +1161,7 @@ class AppLauncherPage(QtWidgets.QWidget):
         names = []
         for r in rows:
             name_item = self.tbl_apps.item(r, 1)
+            name_item = self.tbl_apps.item(r, 0)
             if name_item:
                 names.append(name_item.text())
         return names
@@ -1280,6 +1333,9 @@ class AppLauncherPage(QtWidgets.QWidget):
         row = item.row()
         name_item = self.tbl_apps.item(row, 1)
         type_item = self.tbl_apps.item(row, 8)
+        type_item = self.tbl_apps.item(row, 7)
+        type_item = self.tbl_apps.item(row, 6)
+        type_item = self.tbl_apps.item(row, 5)
         if not name_item or not type_item:
             return
         name = name_item.text()
@@ -1316,6 +1372,8 @@ class AppLauncherPage(QtWidgets.QWidget):
             self.cmb_group.setCurrentText(current)
         elif saved and (saved in groups or saved == "All groups"):
             self.cmb_group.setCurrentText(saved)
+        if current and current in groups:
+            self.cmb_group.setCurrentText(current)
         self.cmb_group.blockSignals(False)
 
     def _selected_group(self) -> Optional[str]:

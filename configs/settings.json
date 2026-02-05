@@ -177,6 +177,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "Discord",
@@ -185,6 +187,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "Chrome",
@@ -193,6 +197,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "Steam",
@@ -201,6 +207,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "Spotify",
@@ -209,6 +217,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "TeamSpeak",
@@ -217,6 +227,8 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
+        "enabled": true
       },
       {
         "name": "Telegram",
@@ -225,11 +237,22 @@
         "enabled": true,
         "group": "Default",
         "profile": "Auto"
+        "group": "Default"
       }
     ],
     "custom": [],
     "last_launch": {},
     "last_group": "All groups",
     "last_selected": []
+  }
+}
+    "last_group": "All groups"
+  }
+}
+        "enabled": true
+      }
+    ],
+    "custom": [],
+    "last_launch": {}
   }
 }
