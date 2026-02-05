@@ -1163,6 +1163,21 @@ class AppLauncherPage(QtWidgets.QWidget):
                 continue
         return matches
 
+    def _set_active_profile_runtime(self, profile: str):
+        profile = str(profile or "").strip()
+        if not profile or profile == "Auto":
+            return
+        self.settings.data.setdefault("profiles", {})["active"] = profile
+
+    def _launch_apps_batch(self, apps: List[Dict[str, Any]], relaunch: bool):
+        prev_profile = self.settings.get_active_profile()
+        try:
+            for app in apps:
+                self._set_active_profile_runtime(app.get("profile", "Auto"))
+                self._launch_app(app, relaunch)
+        finally:
+            self._set_active_profile_runtime(prev_profile)
+
     def _launch_app(self, app: Dict[str, Any], relaunch: bool):
         matches = self._match_processes(app)
         if matches and not relaunch:
@@ -1178,9 +1193,6 @@ class AppLauncherPage(QtWidgets.QWidget):
             return
         args = _split_args(app.get("args", ""))
         try:
-            prof = app.get("profile", "Auto")
-            if prof and prof != "Auto":
-                self.settings.set_active_profile(prof)
             subprocess.Popen([path, *args])
             self._mark_last_launch(app.get("name", ""))
         except Exception:
@@ -1190,17 +1202,15 @@ class AppLauncherPage(QtWidgets.QWidget):
         names = self._selected_app_names()
         apps = self._all_apps()
         relaunch = self.chk_relaunch.isChecked()
-        for app in apps:
-            if app.get("name") in names:
-                self._launch_app(app, relaunch)
+        selected = [app for app in apps if app.get("name") in names]
+        self._launch_apps_batch(selected, relaunch)
         self._refresh()
 
     def _launch_enabled(self):
         apps = self._all_apps()
         relaunch = self.chk_relaunch.isChecked()
-        for app in apps:
-            if app.get("enabled", True):
-                self._launch_app(app, relaunch)
+        enabled = [app for app in apps if app.get("enabled", True)]
+        self._launch_apps_batch(enabled, relaunch)
         self._refresh()
 
     def _stop_selected(self):
@@ -1331,9 +1341,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         if not group:
             return
         relaunch = self.chk_relaunch.isChecked()
-        for app in self._all_apps():
-            if (app.get("group") or "Default") == group:
-                self._launch_app(app, relaunch)
+        grouped = [app for app in self._all_apps() if (app.get("group") or "Default") == group]
+        self._launch_apps_batch(grouped, relaunch)
         self._refresh()
 
     def _stop_group(self):
