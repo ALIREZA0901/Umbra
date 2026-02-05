@@ -249,6 +249,16 @@ def _default_settings() -> Dict[str, Any]:
             "custom": [],
             "last_launch": {},
             "last_group": "All groups",
+                {"name": "OBS", "path": "", "args": "", "enabled": True},
+                {"name": "Discord", "path": "", "args": "", "enabled": True},
+                {"name": "Chrome", "path": "", "args": "", "enabled": True},
+                {"name": "Steam", "path": "", "args": "", "enabled": True},
+                {"name": "Spotify", "path": "", "args": "", "enabled": True},
+                {"name": "TeamSpeak", "path": "", "args": "", "enabled": True},
+                {"name": "Telegram", "path": "", "args": "", "enabled": True},
+            ],
+            "custom": [],
+            "last_launch": {},
         },
     }
 
