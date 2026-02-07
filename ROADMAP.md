@@ -31,7 +31,7 @@
 - **اقدام بعدی**:
   - Menu bar سریع [انجام شد]
   - Quick actions در tray [انجام شد]
-  - ریزتنظیمات زیبایی
+  - ریزتنظیمات زیبایی [انجام شد]
 
 ## 5) Auto Refresh / Monitoring
 - **Spec**: refresh interval، toggle، pause on minimize.

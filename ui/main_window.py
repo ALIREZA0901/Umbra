@@ -58,6 +58,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for b in (self.btn_dashboard, self.btn_launcher, self.btn_vpn, self.btn_route, self.btn_settings):
             b.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
             b.setMinimumHeight(44)
+            b.setCheckable(True)
+            b.setAutoExclusive(True)
+            b.setObjectName("navButton")
 
         nav_layout.addWidget(self.btn_dashboard)
         nav_layout.addWidget(self.btn_launcher)
@@ -96,26 +99,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(root)
 
         # Wiring
-        self.btn_dashboard.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_dashboard))
-        self.btn_launcher.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_launcher))
-        self.btn_vpn.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_vpn))
-        self.btn_route.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_route))
-        self.btn_settings.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_settings))
+        self.btn_dashboard.clicked.connect(lambda: self._set_active_page(self.page_dashboard, self.btn_dashboard))
+        self.btn_launcher.clicked.connect(lambda: self._set_active_page(self.page_launcher, self.btn_launcher))
+        self.btn_vpn.clicked.connect(lambda: self._set_active_page(self.page_vpn, self.btn_vpn))
+        self.btn_route.clicked.connect(lambda: self._set_active_page(self.page_route, self.btn_route))
+        self.btn_settings.clicked.connect(lambda: self._set_active_page(self.page_settings, self.btn_settings))
 
+        self._set_active_page(self.page_dashboard, self.btn_dashboard)
         self._build_menu()
 
     def _go_settings(self):
-        self.stack.setCurrentWidget(self.page_settings)
+        self._set_active_page(self.page_settings, self.btn_settings)
+
+    def _set_active_page(self, page: QtWidgets.QWidget, button: QtWidgets.QPushButton):
+        self.stack.setCurrentWidget(page)
+        button.setChecked(True)
 
     def _build_menu(self):
         menu = self.menuBar()
 
         view_menu = menu.addMenu("View")
-        view_menu.addAction("Dashboard", lambda: self.stack.setCurrentWidget(self.page_dashboard))
-        view_menu.addAction("App Launcher", lambda: self.stack.setCurrentWidget(self.page_launcher))
-        view_menu.addAction("VPN Manager", lambda: self.stack.setCurrentWidget(self.page_vpn))
-        view_menu.addAction("App Routing", lambda: self.stack.setCurrentWidget(self.page_route))
-        view_menu.addAction("Settings", lambda: self.stack.setCurrentWidget(self.page_settings))
+        view_menu.addAction("Dashboard", lambda: self._set_active_page(self.page_dashboard, self.btn_dashboard))
+        view_menu.addAction("App Launcher", lambda: self._set_active_page(self.page_launcher, self.btn_launcher))
+        view_menu.addAction("VPN Manager", lambda: self._set_active_page(self.page_vpn, self.btn_vpn))
+        view_menu.addAction("App Routing", lambda: self._set_active_page(self.page_route, self.btn_route))
+        view_menu.addAction("Settings", lambda: self._set_active_page(self.page_settings, self.btn_settings))
 
         actions_menu = menu.addMenu("Actions")
         actions_menu.addAction("Start Engine", self.engine.start_engine)
@@ -132,9 +140,9 @@ class MainWindow(QtWidgets.QMainWindow):
         menu.addAction("Refresh App List", self.page_route.refresh_now)
         menu.addAction("Open Settings", self._go_settings)
         menu.addSeparator()
-        menu.addAction("Show Dashboard", lambda: self.stack.setCurrentWidget(self.page_dashboard))
-        menu.addAction("Show App Launcher", lambda: self.stack.setCurrentWidget(self.page_launcher))
-        menu.addAction("Show App Routing", lambda: self.stack.setCurrentWidget(self.page_route))
+        menu.addAction("Show Dashboard", lambda: self._set_active_page(self.page_dashboard, self.btn_dashboard))
+        menu.addAction("Show App Launcher", lambda: self._set_active_page(self.page_launcher, self.btn_launcher))
+        menu.addAction("Show App Routing", lambda: self._set_active_page(self.page_route, self.btn_route))
         menu.exec(QtGui.QCursor.pos())
 
     # ---------------------
@@ -166,8 +174,8 @@ class MainWindow(QtWidgets.QMainWindow):
         act_stop.triggered.connect(self.engine.stop_engine)
         act_apps.triggered.connect(self.page_route.refresh_now)
         act_settings.triggered.connect(self._go_settings)
-        act_dashboard.triggered.connect(lambda: self.stack.setCurrentWidget(self.page_dashboard))
-        act_route.triggered.connect(lambda: self.stack.setCurrentWidget(self.page_route))
+        act_dashboard.triggered.connect(lambda: self._set_active_page(self.page_dashboard, self.btn_dashboard))
+        act_route.triggered.connect(lambda: self._set_active_page(self.page_route, self.btn_route))
         act_exit.triggered.connect(self._tray_exit)
 
         tray.setContextMenu(menu)
