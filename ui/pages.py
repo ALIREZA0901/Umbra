@@ -264,6 +264,8 @@ class DashboardPage(QtWidgets.QWidget):
         self._last_io = psutil.net_io_counters()
         self._last_ts = time.time()
         self._adv_last_results: Dict[str, Any] = {}
+        self._last_ports_ts = 0.0
+        self._ports_cache = "-"
 
         self._build()
         self._wire()
@@ -365,6 +367,7 @@ class DashboardPage(QtWidgets.QWidget):
         self.cmb_metric.addItems(["Bandwidth (Down/Up)", "Packets (recv/sent)", "Errors (in/out)"])
         self.lbl_live = QtWidgets.QLabel("Down: - | Up: -")
         self.lbl_live2 = QtWidgets.QLabel("Ping60s: -   Loss60s: -   Jitter60s: -")
+        self.lbl_ports = QtWidgets.QLabel("Listening ports: -")
 
         # graph
         if pg:
@@ -389,6 +392,7 @@ class DashboardPage(QtWidgets.QWidget):
         gbl.addWidget(self.lbl_live)
         gbl.addWidget(self.plot)
         gbl.addWidget(self.lbl_live2)
+        gbl.addWidget(self.lbl_ports)
         gbl.addStretch(1)
 
         top.addWidget(gb_profiles, 1)
@@ -601,6 +605,18 @@ class DashboardPage(QtWidgets.QWidget):
             self.lbl_live.setText(f"Packets recv: {c.packets_recv} | sent: {c.packets_sent}")
         else:
             self.lbl_live.setText(f"Errors in: {c.errin} | out: {c.errout}")
+
+        # listening ports (lightweight, throttled)
+        now_ports = time.time()
+        if now_ports - self._last_ports_ts >= 5:
+            ports = self.engine.detect_listening_ports(limit=6)
+            if ports:
+                port_text = ", ".join(f"{p['port']}:{p['name']}" for p in ports)
+            else:
+                port_text = "-"
+            self._ports_cache = port_text
+            self._last_ports_ts = now_ports
+        self.lbl_ports.setText(f"Listening ports: {self._ports_cache}")
 
         # Terminal color hint (engine running)
         st = self.engine.status()

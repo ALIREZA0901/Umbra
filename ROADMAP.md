@@ -52,7 +52,7 @@
 - **Spec**: auto-detect port و route method داخلی.
 - **وضعیت فعلی**: اسکلت Engine Manager آماده است.
 - **اقدام بعدی**:
-  - شناسایی پورت‌های listening
+  - شناسایی پورت‌های listening [انجام شد]
   - UI override دستی
 
 ## 8) Safety & “No Network-Impacting Tests”

@@ -91,6 +91,33 @@ class EngineManager:
         self.logger.info("Engine stopped.")
         return True
 
+    def detect_listening_ports(self, limit: int = 8):
+        ports = []
+        try:
+            conns = psutil.net_connections(kind="inet")
+        except Exception:
+            return ports
+        for c in conns:
+            try:
+                if c.status != psutil.CONN_LISTEN:
+                    continue
+                laddr = c.laddr
+                port = getattr(laddr, "port", None)
+                if not port:
+                    continue
+                pid = c.pid or 0
+                name = "-"
+                if pid:
+                    try:
+                        name = psutil.Process(pid).name()
+                    except Exception:
+                        name = "-"
+                ports.append({"port": int(port), "pid": int(pid), "name": name})
+            except Exception:
+                continue
+        ports = sorted(ports, key=lambda x: x["port"])
+        return ports[: max(0, limit)]
+
     def shutdown(self):
         # Called on app exit
         try:
