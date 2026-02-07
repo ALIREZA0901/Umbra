@@ -29,8 +29,8 @@
 - **Spec**: UI Dark شبیه Discord/TeamSpeak، Menu bar، Tray actions.
 - **وضعیت فعلی**: تم تاریک + tray + پنل‌ها ساخته شده‌اند.
 - **اقدام بعدی**:
-  - Menu bar سریع
-  - Quick actions در tray
+  - Menu bar سریع [انجام شد]
+  - Quick actions در tray [انجام شد]
   - ریزتنظیمات زیبایی
 
 ## 5) Auto Refresh / Monitoring

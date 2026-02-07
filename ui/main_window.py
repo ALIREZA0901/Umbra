@@ -121,6 +121,21 @@ class MainWindow(QtWidgets.QMainWindow):
         actions_menu.addAction("Start Engine", self.engine.start_engine)
         actions_menu.addAction("Stop Engine", self.engine.stop_engine)
         actions_menu.addAction("Refresh App List", self.page_route.refresh_now)
+        actions_menu.addSeparator()
+        actions_menu.addAction("Quick Actions...", self._show_quick_actions)
+
+    def _show_quick_actions(self):
+        menu = QtWidgets.QMenu(self)
+        menu.addAction("Start Engine", self.engine.start_engine)
+        menu.addAction("Stop Engine", self.engine.stop_engine)
+        menu.addSeparator()
+        menu.addAction("Refresh App List", self.page_route.refresh_now)
+        menu.addAction("Open Settings", self._go_settings)
+        menu.addSeparator()
+        menu.addAction("Show Dashboard", lambda: self.stack.setCurrentWidget(self.page_dashboard))
+        menu.addAction("Show App Launcher", lambda: self.stack.setCurrentWidget(self.page_launcher))
+        menu.addAction("Show App Routing", lambda: self.stack.setCurrentWidget(self.page_route))
+        menu.exec(QtGui.QCursor.pos())
 
     # ---------------------
     # Tray / Close behavior
@@ -141,6 +156,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu.addSeparator()
         act_apps = menu.addAction("Refresh App List")
         act_settings = menu.addAction("Open Settings")
+        act_dashboard = menu.addAction("Open Dashboard")
+        act_route = menu.addAction("Open App Routing")
         menu.addSeparator()
         act_exit = menu.addAction("Exit")
 
@@ -149,6 +166,8 @@ class MainWindow(QtWidgets.QMainWindow):
         act_stop.triggered.connect(self.engine.stop_engine)
         act_apps.triggered.connect(self.page_route.refresh_now)
         act_settings.triggered.connect(self._go_settings)
+        act_dashboard.triggered.connect(lambda: self.stack.setCurrentWidget(self.page_dashboard))
+        act_route.triggered.connect(lambda: self.stack.setCurrentWidget(self.page_route))
         act_exit.triggered.connect(self._tray_exit)
 
         tray.setContextMenu(menu)
