@@ -470,6 +470,10 @@ class SettingsManager:
     def get_active_profile(self) -> str:
         return str((self.data.get("profiles", {}) or {}).get("active", "Gaming"))
 
+    def get_profile_names(self) -> List[str]:
+        items = (self.data.get("profiles", {}) or {}).get("items", {}) or {}
+        return list(items.keys())
+
     def set_active_profile(self, name: str):
         if not name:
             return

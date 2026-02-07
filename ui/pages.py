@@ -819,11 +819,16 @@ class VPNManagerPage(QtWidgets.QWidget):
 
         core_actions = QtWidgets.QHBoxLayout()
         self.lbl_active_core = QtWidgets.QLabel("Active config: -")
+        self.cmb_profile_select = QtWidgets.QComboBox()
+        self.cmb_profile_select.addItems(self.settings.get_profile_names())
+        self.btn_set_profile = QtWidgets.QPushButton("Set Profile")
         self.btn_start_core = QtWidgets.QPushButton("Start Core")
         self.btn_stop_core = QtWidgets.QPushButton("Stop Core")
-        for b in (self.btn_start_core, self.btn_stop_core):
+        for b in (self.btn_set_profile, self.btn_start_core, self.btn_stop_core):
             b.setMinimumHeight(40)
         core_actions.addWidget(self.lbl_active_core, 1)
+        core_actions.addWidget(self.cmb_profile_select)
+        core_actions.addWidget(self.btn_set_profile)
         core_actions.addWidget(self.btn_start_core)
         core_actions.addWidget(self.btn_stop_core)
         layout.addLayout(core_actions)
@@ -835,6 +840,7 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.btn_add_sub.clicked.connect(self._add_sub)
         self.btn_update_sub.clicked.connect(self._update_sub)
         self.btn_set_active.clicked.connect(self._set_active_config)
+        self.btn_set_profile.clicked.connect(self._set_profile_for_vpn)
         self.btn_start_core.clicked.connect(self._start_core)
         self.btn_stop_core.clicked.connect(self._stop_core)
 
@@ -858,6 +864,8 @@ class VPNManagerPage(QtWidgets.QWidget):
 
         # active config label
         active_profile = self.settings.get_active_profile()
+        if hasattr(self, "cmb_profile_select"):
+            self.cmb_profile_select.setCurrentText(active_profile)
         active_idx = (self.settings.data.get("profiles", {}) or {}).get("items", {}).get(active_profile, {}).get("active_config_idx")
         if active_idx is not None and 0 <= active_idx < len(cfgs):
             self.lbl_active_core.setText(f"Active config: {cfgs[active_idx].get('name','')}")
@@ -938,6 +946,13 @@ class VPNManagerPage(QtWidgets.QWidget):
     def _stop_core(self):
         self.engine.stop_core()
         QtWidgets.QMessageBox.information(self, "Stop Core", "Core stop requested.")
+
+    def _set_profile_for_vpn(self):
+        profile = self.cmb_profile_select.currentText() if hasattr(self, "cmb_profile_select") else ""
+        if not profile:
+            return
+        self.settings.set_active_profile(profile)
+        self._refresh()
 
 
 # ---------------------

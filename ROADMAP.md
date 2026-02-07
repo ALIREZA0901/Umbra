@@ -45,7 +45,7 @@
 - **وضعیت فعلی**: مدیریت config + subscription + import از clipboard موجود است.
 - **اقدام بعدی**:
   - اجرای core واقعی [انجام شد]
-  - مدیریت پروفایل‌های VPN
+  - مدیریت پروفایل‌های VPN [انجام شد]
   - SOCKS/HTTP/WireGuard/Hysteria2
 
 ## 7) VPN Port / Process Detection
