@@ -37,8 +37,8 @@
 - **Spec**: refresh interval، toggle، pause on minimize.
 - **وضعیت فعلی**: مانیتورینگ سبک در Dashboard و App Routing.
 - **اقدام بعدی**:
-  - تنظیم interval
-  - pause/sleep هنگام minimize
+  - تنظیم interval [انجام شد]
+  - pause/sleep هنگام minimize [انجام شد]
 
 ## 6) VPN Manager (Inside Umbra)
 - **Spec**: مدیریت config، پروفایل‌ها، core run/stop، پشتیبانی پروتکل‌ها.

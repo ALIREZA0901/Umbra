@@ -862,13 +862,18 @@ class VPNManagerPage(QtWidgets.QWidget):
 # ---------------------
 
 class AppLauncherPage(QtWidgets.QWidget):
-    def __init__(self, engine: EngineManager, settings: SettingsManager):
+    def __init__(self, engine: EngineManager, settings: SettingsManager, is_refresh_paused_cb: Optional[Callable[[], bool]] = None):
         super().__init__()
         self.engine = engine
         self.settings = settings
+        self.is_refresh_paused_cb = is_refresh_paused_cb
         self._build()
         self._wire()
         self._refresh()
+
+        self._auto_timer = QtCore.QTimer(self)
+        self._auto_timer.timeout.connect(self._maybe_auto_refresh)
+        self._auto_timer.start(1000)
 
     def _build(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -986,6 +991,22 @@ class AppLauncherPage(QtWidgets.QWidget):
         self.tbl_apps.itemSelectionChanged.connect(self._save_selected_cache)
         self.cmb_group.currentTextChanged.connect(self._on_group_changed)
         self.chk_filter_group.toggled.connect(self._refresh)
+
+    def _maybe_auto_refresh(self):
+        if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
+            return
+        ui = (self.settings.data.get("ui", {}) or {})
+        if not bool(ui.get("refresh_enabled", True)):
+            return
+        interval_s = int(ui.get("refresh_interval_s", 60))
+        if interval_s <= 0:
+            return
+        now = time.time()
+        last = getattr(self, "_last_auto_refresh", 0.0)
+        if now - last < interval_s:
+            return
+        self._last_auto_refresh = now
+        self._refresh()
 
     def _all_apps(self) -> List[Dict[str, Any]]:
         apps = self.settings.data.get("apps", {}) or {}

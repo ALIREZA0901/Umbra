@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
             go_to_settings_cb=self._go_settings,
             is_refresh_paused_cb=self._is_refresh_paused,
         )
-        self.page_launcher = AppLauncherPage(self.engine, self.settings)
+        self.page_launcher = AppLauncherPage(self.engine, self.settings, is_refresh_paused_cb=self._is_refresh_paused)
         self.page_vpn = VPNManagerPage(self.engine, self.settings)
         self.page_route = AppRoutingPage(
             self.engine,
