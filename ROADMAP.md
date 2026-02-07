@@ -53,7 +53,7 @@
 - **وضعیت فعلی**: اسکلت Engine Manager آماده است.
 - **اقدام بعدی**:
   - شناسایی پورت‌های listening [انجام شد]
-  - UI override دستی
+  - UI override دستی [انجام شد]
 
 ## 8) Safety & “No Network-Impacting Tests”
 - **Spec**: هیچ تست شبکه‌ای بدون تأیید.

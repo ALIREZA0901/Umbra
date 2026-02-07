@@ -266,12 +266,15 @@ class DashboardPage(QtWidgets.QWidget):
         self._adv_last_results: Dict[str, Any] = {}
         self._last_ports_ts = 0.0
         self._ports_cache = "-"
+        self._load_port_override()
 
         self._build()
         self._wire()
 
         # terminal callback
         self.engine.set_log_callback(self._append_terminal)
+
+        self.btn_set_port_override.clicked.connect(self._set_port_override)
 
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(1000)
@@ -368,6 +371,10 @@ class DashboardPage(QtWidgets.QWidget):
         self.lbl_live = QtWidgets.QLabel("Down: - | Up: -")
         self.lbl_live2 = QtWidgets.QLabel("Ping60s: -   Loss60s: -   Jitter60s: -")
         self.lbl_ports = QtWidgets.QLabel("Listening ports: -")
+        self.in_port_override = QtWidgets.QLineEdit()
+        self.in_port_override.setPlaceholderText("Manual port override (comma-separated)")
+        self.btn_set_port_override = QtWidgets.QPushButton("Set Port Override")
+        self.btn_set_port_override.setMinimumHeight(34)
 
         # graph
         if pg:
@@ -393,6 +400,8 @@ class DashboardPage(QtWidgets.QWidget):
         gbl.addWidget(self.plot)
         gbl.addWidget(self.lbl_live2)
         gbl.addWidget(self.lbl_ports)
+        gbl.addWidget(self.in_port_override)
+        gbl.addWidget(self.btn_set_port_override)
         gbl.addStretch(1)
 
         top.addWidget(gb_profiles, 1)
@@ -578,6 +587,23 @@ class DashboardPage(QtWidgets.QWidget):
         jitter = statistics.pstdev(oks) if len(oks) >= 2 else 0.0
         self.lbl_live2.setText(f"Ping60s: {ping:.0f} ms   Loss60s: {loss*100:.0f}%   Jitter60s: {jitter:.1f} ms")
 
+    def _load_port_override(self):
+        override = (self.settings.data.get("engine", {}) or {}).get("port_override", "")
+        self.in_port_override.setText(str(override))
+
+    def _set_port_override(self):
+        raw = self.in_port_override.text().strip()
+        if raw:
+            parts = [p.strip() for p in raw.split(",") if p.strip()]
+            cleaned = []
+            for p in parts:
+                if p.isdigit():
+                    cleaned.append(str(int(p)))
+            raw = ", ".join(cleaned)
+        self.settings.data.setdefault("engine", {})["port_override"] = raw
+        self.settings.save()
+        QtWidgets.QMessageBox.information(self, "Port Override", "Manual port override saved.")
+
     def _tick(self):
         if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
             return
@@ -616,7 +642,11 @@ class DashboardPage(QtWidgets.QWidget):
                 port_text = "-"
             self._ports_cache = port_text
             self._last_ports_ts = now_ports
-        self.lbl_ports.setText(f"Listening ports: {self._ports_cache}")
+        override = (self.settings.data.get("engine", {}) or {}).get("port_override", "")
+        if override:
+            self.lbl_ports.setText(f"Listening ports: {self._ports_cache} | Override: {override}")
+        else:
+            self.lbl_ports.setText(f"Listening ports: {self._ports_cache}")
 
         # Terminal color hint (engine running)
         st = self.engine.status()
