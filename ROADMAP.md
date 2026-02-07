@@ -44,7 +44,7 @@
 - **Spec**: مدیریت config، پروفایل‌ها، core run/stop، پشتیبانی پروتکل‌ها.
 - **وضعیت فعلی**: مدیریت config + subscription + import از clipboard موجود است.
 - **اقدام بعدی**:
-  - اجرای core واقعی
+  - اجرای core واقعی [انجام شد]
   - مدیریت پروفایل‌های VPN
   - SOCKS/HTTP/WireGuard/Hysteria2
 

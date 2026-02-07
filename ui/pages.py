@@ -817,6 +817,17 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.lbl_status = QtWidgets.QLabel("Auto-detect: ON (core + config type).")
         layout.addWidget(self.lbl_status)
 
+        core_actions = QtWidgets.QHBoxLayout()
+        self.lbl_active_core = QtWidgets.QLabel("Active config: -")
+        self.btn_start_core = QtWidgets.QPushButton("Start Core")
+        self.btn_stop_core = QtWidgets.QPushButton("Stop Core")
+        for b in (self.btn_start_core, self.btn_stop_core):
+            b.setMinimumHeight(40)
+        core_actions.addWidget(self.lbl_active_core, 1)
+        core_actions.addWidget(self.btn_start_core)
+        core_actions.addWidget(self.btn_stop_core)
+        layout.addLayout(core_actions)
+
     def _wire(self):
         self.btn_import.clicked.connect(self._import_text)
         self.btn_clip_import.clicked.connect(self._import_clipboard)
@@ -824,6 +835,8 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.btn_add_sub.clicked.connect(self._add_sub)
         self.btn_update_sub.clicked.connect(self._update_sub)
         self.btn_set_active.clicked.connect(self._set_active_config)
+        self.btn_start_core.clicked.connect(self._start_core)
+        self.btn_stop_core.clicked.connect(self._stop_core)
 
     def _refresh(self):
         # configs table
@@ -842,6 +855,14 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.lst_subs.clear()
         for u in self.settings.data.get("subscriptions", []) or []:
             self.lst_subs.addItem(u)
+
+        # active config label
+        active_profile = self.settings.get_active_profile()
+        active_idx = (self.settings.data.get("profiles", {}) or {}).get("items", {}).get(active_profile, {}).get("active_config_idx")
+        if active_idx is not None and 0 <= active_idx < len(cfgs):
+            self.lbl_active_core.setText(f"Active config: {cfgs[active_idx].get('name','')}")
+        else:
+            self.lbl_active_core.setText("Active config: -")
 
     def _import_text(self):
         txt = self.txt_import.toPlainText().strip()
@@ -901,6 +922,22 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.settings.data.setdefault("profiles", {}).setdefault("items", {}).setdefault(active_profile, {})["active_config_idx"] = row
         self.settings.save()
         QtWidgets.QMessageBox.information(self, "Active Config", f"Selected config set for profile: {active_profile}")
+        self._refresh()
+
+    def _start_core(self):
+        cfgs = self.settings.data.get("configs", []) or []
+        active_profile = self.settings.get_active_profile()
+        active_idx = (self.settings.data.get("profiles", {}) or {}).get("items", {}).get(active_profile, {}).get("active_config_idx")
+        if active_idx is None or not (0 <= active_idx < len(cfgs)):
+            QtWidgets.QMessageBox.warning(self, "Start Core", "No active config selected for current profile.")
+            return
+        ok = self.engine.start_core_with_config(cfgs[active_idx])
+        if not ok:
+            QtWidgets.QMessageBox.warning(self, "Start Core", "Failed to start core. Check logs for details.")
+
+    def _stop_core(self):
+        self.engine.stop_core()
+        QtWidgets.QMessageBox.information(self, "Stop Core", "Core stop requested.")
 
 
 # ---------------------
