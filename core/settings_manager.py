@@ -133,6 +133,16 @@ def _default_dns_servers() -> List[Dict[str, Any]]:
     ]
 
 
+def _dns_presets() -> Dict[str, List[str]]:
+    return {
+        "Balanced (IR + Global)": ["Shecan 1", "Cloudflare", "Quad9"],
+        "Iran Only": ["Shecan 1", "Shecan 2", "Radar (IR)"],
+        "Global Only": ["Cloudflare", "Google", "Quad9", "OpenDNS"],
+        "Privacy / Adblock": ["Quad9", "AdGuard", "Cloudflare"],
+        "All Defaults": [],
+    }
+
+
 def _default_speedtest_targets() -> List[Dict[str, str]]:
     # Ping targets (safe) + download URLs for optional advanced tests.
     # IR: ArvanCloud edge download (supports big files; app uses HTTP Range to limit bytes)
@@ -319,6 +329,26 @@ class SettingsManager:
             return False
         servers.pop(idx)
         self.data["dns"]["servers"] = servers
+        self.save()
+        return True
+
+    def dns_preset_names(self) -> List[str]:
+        return list(_dns_presets().keys())
+
+    def apply_dns_preset(self, preset_name: str) -> bool:
+        preset_name = str(preset_name or "").strip()
+        presets = _dns_presets()
+        if preset_name not in presets:
+            return False
+
+        catalog = _default_dns_servers()
+        wanted = set(presets[preset_name])
+        if not wanted:
+            selected = catalog
+        else:
+            selected = [item for item in catalog if item.get("name") in wanted]
+
+        self.data.setdefault("dns", {})["servers"] = selected
         self.save()
         return True
 

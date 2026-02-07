@@ -1791,12 +1791,21 @@ class SettingsPage(QtWidgets.QWidget):
         self.btn_del_dns = QtWidgets.QPushButton("Delete Selected")
         self.btn_del_dns.setMinimumHeight(44)
 
+        preset_row = QtWidgets.QHBoxLayout()
+        self.cmb_dns_preset = QtWidgets.QComboBox()
+        self.btn_apply_dns_preset = QtWidgets.QPushButton("Apply Preset")
+        self.btn_apply_dns_preset.setMinimumHeight(40)
+        preset_row.addWidget(QtWidgets.QLabel("Preset:"))
+        preset_row.addWidget(self.cmb_dns_preset, 1)
+        preset_row.addWidget(self.btn_apply_dns_preset)
+
         row.addWidget(self.in_dns_name, 1)
         row.addWidget(self.in_dns_server, 1)
         row.addWidget(self.btn_add_dns, 0)
 
         d.addWidget(self.tbl_dns, 1)
         d.addLayout(row)
+        d.addLayout(preset_row)
         d.addWidget(self.btn_del_dns)
 
         # Load balancer page
@@ -1893,6 +1902,7 @@ class SettingsPage(QtWidgets.QWidget):
         self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.btn_add_dns.clicked.connect(self._add_dns)
         self.btn_del_dns.clicked.connect(self._del_dns)
+        self.btn_apply_dns_preset.clicked.connect(self._apply_dns_preset)
 
         self.btn_optimize.clicked.connect(self._optimize_dns)
 
@@ -1943,6 +1953,8 @@ class SettingsPage(QtWidgets.QWidget):
 
         # dns
         self._refresh_dns_table()
+        self.cmb_dns_preset.clear()
+        self.cmb_dns_preset.addItems(self.settings.dns_preset_names())
 
     def _save_behavior(self):
         self.settings.create_snapshot("Apply: Behavior/Copilot")
@@ -1983,6 +1995,14 @@ class SettingsPage(QtWidgets.QWidget):
             return
         self.settings.remove_dns_by_index(row)
         self._refresh_dns_table()
+
+    def _apply_dns_preset(self):
+        preset = self.cmb_dns_preset.currentText() if hasattr(self, "cmb_dns_preset") else ""
+        if not preset:
+            return
+        if self.settings.apply_dns_preset(preset):
+            self._refresh_dns_table()
+            QtWidgets.QMessageBox.information(self, "DNS Preset", f"Applied preset: {preset}")
 
     def _optimize_dns(self):
         # user-triggered, ping-based (safe)
