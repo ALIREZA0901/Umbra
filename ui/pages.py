@@ -1445,6 +1445,9 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.btn_apply = QtWidgets.QPushButton("Apply")
         self.btn_apply.setMinimumHeight(46)
 
+        self.btn_reset_dns = QtWidgets.QPushButton("Reset DNS for App")
+        self.btn_reset_dns.setMinimumHeight(40)
+
         self.btn_obs_quick = QtWidgets.QPushButton("Apply OBS Quick Profile")
         self.btn_obs_quick.setMinimumHeight(40)
 
@@ -1455,6 +1458,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         gr.addRow("Selected App", self.lbl_current)
         gr.addRow("Interface info", self.lbl_iface_info)
         gr.addRow("", self.btn_apply)
+        gr.addRow("", self.btn_reset_dns)
         gr.addRow("", self.btn_obs_quick)
 
         top.addWidget(gb_list, 1)
@@ -1469,6 +1473,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.lst_apps.currentItemChanged.connect(lambda *_: self._load_app_rule())
         self.cmb_iface.currentTextChanged.connect(lambda *_: self._update_iface_info())
         self.btn_apply.clicked.connect(self._apply)
+        self.btn_reset_dns.clicked.connect(self._reset_dns_for_app)
         self.btn_obs_quick.clicked.connect(self._apply_obs_quick_profile)
 
     def refresh_now(self):
@@ -1694,6 +1699,17 @@ class AppRoutingPage(QtWidgets.QWidget):
 
         self.settings.save()
         QtWidgets.QMessageBox.information(self, "Applied", "Routing saved (Apply).")
+
+    def _reset_dns_for_app(self):
+        key = self._selected_app_key()
+        if not key:
+            return
+        dns_map = self.settings.data.setdefault("app_dns_routes", {})
+        if key in dns_map:
+            del dns_map[key]
+            self.settings.save()
+        self._select_combo_by_prefix(self.cmb_dns, "AUTO")
+        QtWidgets.QMessageBox.information(self, "DNS Reset", f"DNS reset to AUTO for {key}.")
 
     def _apply_obs_quick_profile(self):
         dns_val = self._extract_setting(self.cmb_dns)

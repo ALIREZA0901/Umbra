@@ -23,7 +23,7 @@
 - **اقدام بعدی**:
   - اعمال per-app DNS روی سیستم
   - presets قابل انتخاب [انجام شد]
-  - reset per app
+  - reset per app [انجام شد]
 
 ## 4) UI / UX
 - **Spec**: UI Dark شبیه Discord/TeamSpeak، Menu bar، Tray actions.
