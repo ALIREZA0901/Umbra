@@ -20,6 +20,13 @@ class EngineStatus:
     message: str
 
 
+@dataclass
+class CoreSpec:
+    name: str
+    binary: Optional[str]
+    kind: str
+
+
 class EngineManager:
     """
     Engine Manager is responsible for:
@@ -119,6 +126,26 @@ class EngineManager:
         ports = sorted(ports, key=lambda x: x["port"])
         return ports[: max(0, limit)]
 
+    def _core_spec(self, core_name: str) -> CoreSpec:
+        paths = ((self.settings.data.get("core_updates", {}) or {}).get("paths", {}) or {})
+        core_name = str(core_name or "").lower()
+        if core_name in {"auto", "singbox", "sing-box"}:
+            return CoreSpec(name="singbox", binary=self._find_singbox_binary(), kind="json")
+        if core_name in {"clash", "mihomo"}:
+            return CoreSpec(name="clash", binary=None, kind="yaml")
+        if core_name == "openvpn":
+            return CoreSpec(name="openvpn", binary=paths.get("openvpn") or None, kind="ovpn")
+        if core_name == "openconnect":
+            return CoreSpec(name="openconnect", binary=paths.get("openconnect") or None, kind="url")
+        return CoreSpec(name=core_name, binary=None, kind="unknown")
+
+    def _start_unsupported_core(self, spec: CoreSpec) -> bool:
+        if not spec.binary:
+            self.logger.error(f"{spec.name} binary path is not configured.")
+            return False
+        self.logger.error(f"Compatibility layer ready, but runtime for '{spec.name}' is not implemented yet.")
+        return False
+
     def start_core_with_config(self, cfg: dict) -> bool:
         if not cfg:
             self.logger.error("No config provided for core start.")
@@ -128,19 +155,18 @@ class EngineManager:
                 self.logger.warn("Core already running.")
                 return False
 
-        core = str(cfg.get("core", "auto") or "auto").lower()
         raw = (cfg.get("raw") or "").strip()
         if not raw:
             self.logger.error("Config is empty; cannot start core.")
             return False
 
-        if core in {"auto", "singbox", "sing-box"}:
+        spec = self._core_spec(str(cfg.get("core", "auto") or "auto"))
+        if spec.name == "singbox":
             return self._start_singbox(raw)
-        if core in {"clash", "mihomo"}:
-            self.logger.error("Mihomo/Clash core start not implemented yet.")
-            return False
+        if spec.name in {"clash", "openvpn", "openconnect"}:
+            return self._start_unsupported_core(spec)
 
-        self.logger.error(f"Unsupported core: {core}")
+        self.logger.error(f"Unsupported core: {spec.name}")
         return False
 
     def stop_core(self) -> bool:
