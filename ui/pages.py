@@ -659,6 +659,17 @@ class DashboardPage(QtWidgets.QWidget):
 
     def _run_safe_pingtest(self):
         # safe test: ping/jitter/loss using selected target host
+        mb = QtWidgets.QMessageBox(self)
+        mb.setWindowTitle("Confirm Safe Ping Test")
+        mb.setIcon(QtWidgets.QMessageBox.Icon.Question)
+        mb.setText(
+            "This action sends 10 lightweight ping requests to the selected target and does not run download/upload tests.\n"
+            "Do you want to continue?"
+        )
+        mb.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        if mb.exec() != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+
         targets = (self.settings.data.get("speedtest", {}) or {}).get("targets", [])
         idx = max(0, self.cmb_speed_target.currentIndex())
         host = targets[idx].get("host") if idx < len(targets) else "1.1.1.1" or "1.1.1.1"
@@ -688,7 +699,10 @@ class DashboardPage(QtWidgets.QWidget):
         mb = QtWidgets.QMessageBox(self)
         mb.setWindowTitle("Confirm Advanced Speed Test")
         mb.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-        mb.setText("This test will download and upload data and may affect your internet/ping.\nRun now?")
+        mb.setText(
+            "This test will download and upload data and may affect your internet, latency, or data usage.\n"
+            "Only run if you explicitly want a bandwidth test. Continue?"
+        )
         mb.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
         if mb.exec() != QtWidgets.QMessageBox.StandardButton.Yes:
             return
