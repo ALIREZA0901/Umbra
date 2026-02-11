@@ -560,6 +560,8 @@ class DashboardPage(QtWidgets.QWidget):
 
     def _ping_once_if_engine_on(self):
         # lightweight ICMP monitoring: only when engine is ON
+        if (self.settings.data.get("ui", {}) or {}).get("disable_automations", False):
+            return
         if not self.engine.is_running():
             return
         # ping target comes from first speedtest target (cloudflare)
@@ -605,6 +607,10 @@ class DashboardPage(QtWidgets.QWidget):
         QtWidgets.QMessageBox.information(self, "Port Override", "Manual port override saved.")
 
     def _tick(self):
+        if (self.settings.data.get("ui", {}) or {}).get("disable_automations", False):
+            self.lbl_live.setText("Automations disabled")
+            self.lbl_live2.setText("Ping60s: -   Loss60s: -   Jitter60s: -")
+            return
         if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
             return
         # engine state visuals
@@ -1158,6 +1164,8 @@ class AppLauncherPage(QtWidgets.QWidget):
         if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
             return
         ui = (self.settings.data.get("ui", {}) or {})
+        if bool(ui.get("disable_automations", False)):
+            return
         if not bool(ui.get("refresh_enabled", True)):
             return
         interval_s = int(ui.get("refresh_interval_s", 60))
@@ -1666,6 +1674,8 @@ class AppRoutingPage(QtWidgets.QWidget):
         if self.is_refresh_paused_cb and self.is_refresh_paused_cb():
             return
         ui = (self.settings.data.get("ui", {}) or {})
+        if bool(ui.get("disable_automations", False)):
+            return
         if not bool(ui.get("refresh_enabled", True)):
             return
         interval_s = int(ui.get("refresh_interval_s", 60))
@@ -2059,12 +2069,14 @@ class SettingsPage(QtWidgets.QWidget):
         self.spin_refresh.setRange(5, 3600)
         self.spin_refresh.setSuffix(" s")
         self.chk_pause_min = QtWidgets.QCheckBox("Pause refresh when minimized")
+        self.chk_disable_auto = QtWidgets.QCheckBox("Disable all automations (auto refresh, background ping)")
         b.addRow("Tray", self.chk_tray)
         b.addRow("Close button action", self.cmb_close)
         b.addRow("Dashboard", self.chk_show_bitrate)
         b.addRow("Auto refresh", self.chk_refresh)
         b.addRow("Refresh interval", self.spin_refresh)
         b.addRow("Minimized", self.chk_pause_min)
+        b.addRow("Automation", self.chk_disable_auto)
 
         # Copilot (manual suggestions) - choose intensity
         self.cmb_copilot_mode = QtWidgets.QComboBox()
@@ -2143,6 +2155,7 @@ class SettingsPage(QtWidgets.QWidget):
         self.chk_refresh.setChecked(bool(ui.get("refresh_enabled", True)))
         self.spin_refresh.setValue(int(ui.get("refresh_interval_s", 60)))
         self.chk_pause_min.setChecked(bool(ui.get("pause_refresh_when_minimized", True)))
+        self.chk_disable_auto.setChecked(bool(ui.get("disable_automations", False)))
         if hasattr(self, "cmb_copilot_mode"):
             self.cmb_copilot_mode.setCurrentText(self.settings.get_copilot_mode())
 
@@ -2163,6 +2176,7 @@ class SettingsPage(QtWidgets.QWidget):
         self.settings.data.setdefault("ui", {})["refresh_enabled"] = self.chk_refresh.isChecked()
         self.settings.data.setdefault("ui", {})["refresh_interval_s"] = int(self.spin_refresh.value())
         self.settings.data.setdefault("ui", {})["pause_refresh_when_minimized"] = self.chk_pause_min.isChecked()
+        self.settings.data.setdefault("ui", {})["disable_automations"] = self.chk_disable_auto.isChecked()
         # copilot mode
         if hasattr(self, "cmb_copilot_mode"):
             self.settings.set_copilot_mode(self.cmb_copilot_mode.currentText())

@@ -200,6 +200,7 @@ def _default_settings() -> Dict[str, Any]:
             "refresh_enabled": True,
             "refresh_interval_s": 60,
             "pause_refresh_when_minimized": True,
+            "disable_automations": False,
         },
         "behavior": {
             "auto_suggestions": True,  # Accept/Deny flow; never forced.
