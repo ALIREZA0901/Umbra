@@ -322,11 +322,14 @@ class DashboardPage(QtWidgets.QWidget):
         self.spin_upload_mbps.setValue(10.0)
         self.spin_upload_mbps.setSuffix(" Mbps")
         self.lbl_bitrate = QtWidgets.QLabel("Recommended bitrate: -")
+        self.lbl_bitrate_detail = QtWidgets.QLabel("-")
+        self.lbl_bitrate_detail.setWordWrap(True)
         gbp.addSpacing(6)
         gbp.addWidget(QtWidgets.QLabel("Streaming helper (optional):"))
         gbp.addWidget(self.bit_platform)
         gbp.addWidget(self.spin_upload_mbps)
         gbp.addWidget(self.lbl_bitrate)
+        gbp.addWidget(self.lbl_bitrate_detail)
 
         # ----- Speed test card
         gb_speed = QtWidgets.QGroupBox("Speed Test")
@@ -540,6 +543,7 @@ class DashboardPage(QtWidgets.QWidget):
         show_on_dash = bool(ui.get("show_stream_bitrate_on_dashboard", True))
         if not show_on_dash:
             self.lbl_bitrate.setText("Recommended bitrate: (hidden)")
+            self.lbl_bitrate_detail.setText("Enable dashboard bitrate helper in Settings > Behavior.")
             return
 
         platform_name = self.bit_platform.currentText().strip()
@@ -556,7 +560,20 @@ class DashboardPage(QtWidgets.QWidget):
         }.get(platform_name, 8000)
 
         rec_kbps = int(min(cap_kbps, safe * 1000))
-        self.lbl_bitrate.setText(f"Recommended bitrate ({platform_name}): ~{rec_kbps} kbps (based on upload headroom)")
+        self.lbl_bitrate.setText(f"Recommended bitrate ({platform_name}): ~{rec_kbps} kbps")
+
+        if rec_kbps < 2500:
+            quality = "Low"
+        elif rec_kbps < 4500:
+            quality = "Medium"
+        elif rec_kbps < 7000:
+            quality = "High"
+        else:
+            quality = "Very High"
+
+        self.lbl_bitrate_detail.setText(
+            f"Upload: {upload:.2f} Mbps | Safe headroom (70%): {safe:.2f} Mbps | Platform cap: {cap_kbps} kbps | Quality tier: {quality}"
+        )
 
     def _ping_once_if_engine_on(self):
         # lightweight ICMP monitoring: only when engine is ON
