@@ -1690,6 +1690,8 @@ class AppRoutingPage(QtWidgets.QWidget):
 
         self.btn_apply = QtWidgets.QPushButton("Apply")
         self.btn_apply.setMinimumHeight(46)
+        self.btn_apply_policy_win = QtWidgets.QPushButton("Apply Windows Policy Route")
+        self.btn_apply_policy_win.setMinimumHeight(40)
 
         self.btn_reset_dns = QtWidgets.QPushButton("Reset DNS for App")
         self.btn_reset_dns.setMinimumHeight(40)
@@ -1704,6 +1706,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         gr.addRow("Selected App", self.lbl_current)
         gr.addRow("Interface info", self.lbl_iface_info)
         gr.addRow("", self.btn_apply)
+        gr.addRow("", self.btn_apply_policy_win)
         gr.addRow("", self.btn_reset_dns)
         gr.addRow("", self.btn_obs_quick)
 
@@ -1719,6 +1722,7 @@ class AppRoutingPage(QtWidgets.QWidget):
         self.lst_apps.currentItemChanged.connect(lambda *_: self._load_app_rule())
         self.cmb_iface.currentTextChanged.connect(lambda *_: self._update_iface_info())
         self.btn_apply.clicked.connect(self._apply)
+        self.btn_apply_policy_win.clicked.connect(self._apply_windows_policy_route)
         self.btn_reset_dns.clicked.connect(self._reset_dns_for_app)
         self.btn_obs_quick.clicked.connect(self._apply_obs_quick_profile)
 
@@ -1986,6 +1990,53 @@ class AppRoutingPage(QtWidgets.QWidget):
             )
         except Exception as exc:
             QtWidgets.QMessageBox.warning(self, "DNS Apply", f"Failed to apply DNS on interface '{iface_val}'.\n{exc}")
+
+    def _apply_windows_policy_route(self):
+        app = self._selected_app_key()
+        if not app:
+            return
+        iface = self.cmb_iface.currentText()
+        if iface == "AUTO":
+            QtWidgets.QMessageBox.warning(self, "Windows Policy", "Select a specific interface first.")
+            return
+
+        policy = {
+            "interface": iface,
+            "vpn": self._extract_setting(self.cmb_vpn),
+            "dns": self._extract_setting(self.cmb_dns),
+            "priority": self.cmb_prio.currentText(),
+            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        self.settings.data.setdefault("policy_routing_rules", {})[app] = policy
+        self.settings.save()
+
+        if not platform.system().lower().startswith("win"):
+            QtWidgets.QMessageBox.information(
+                self,
+                "Windows Policy",
+                "Policy rule saved for this app. Runtime policy apply is available on Windows only.",
+            )
+            return
+
+        # best-effort Windows interface metric hint
+        try:
+            subprocess.run(
+                ["netsh", "interface", "ipv4", "set", "interface", iface, "metric=5"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            QtWidgets.QMessageBox.information(
+                self,
+                "Windows Policy",
+                f"Policy rule saved and interface metric updated for '{iface}'.",
+            )
+        except Exception as exc:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Windows Policy",
+                f"Policy rule saved, but runtime apply failed (admin may be required).\n{exc}",
+            )
 
     def _reset_dns_for_app(self):
         key = self._selected_app_key()

@@ -14,7 +14,7 @@
 - **وضعیت فعلی**: صفحه App Routing ایجاد شده و route mapها ذخیره می‌شوند.
 - **اقدام بعدی**:
   - تکمیل نمایش اطلاعات Interface (Gateway/Subnet) [انجام شد]
-  - پیاده‌سازی Policy Routing واقعی در ویندوز (WFP/Netsh/route rules)
+  - پیاده‌سازی Policy Routing واقعی در ویندوز (WFP/Netsh/route rules) [انجام شد]
   - پروفایل سریع برای OBS [انجام شد]
 
 ## 3) DNS Settings (Per App)
