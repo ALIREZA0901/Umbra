@@ -330,6 +330,9 @@ class DashboardPage(QtWidgets.QWidget):
         gbp.addWidget(self.spin_upload_mbps)
         gbp.addWidget(self.lbl_bitrate)
         gbp.addWidget(self.lbl_bitrate_detail)
+        self.btn_apply_obs_stream_profile = QtWidgets.QPushButton("Apply to OBS Profile")
+        self.btn_apply_obs_stream_profile.setMinimumHeight(36)
+        gbp.addWidget(self.btn_apply_obs_stream_profile)
 
         # ----- Speed test card
         gb_speed = QtWidgets.QGroupBox("Speed Test")
@@ -486,6 +489,7 @@ class DashboardPage(QtWidgets.QWidget):
         self.chk_advanced.toggled.connect(self.btn_advtest.setEnabled)
         self.btn_pingtest.clicked.connect(self._run_safe_pingtest)
         self.btn_advtest.clicked.connect(self._run_advanced_speedtest)
+        self.btn_apply_obs_stream_profile.clicked.connect(self._apply_obs_stream_profile)
 
     def _append_terminal(self, line: str):
         # color engine state messages
@@ -573,6 +577,40 @@ class DashboardPage(QtWidgets.QWidget):
 
         self.lbl_bitrate_detail.setText(
             f"Upload: {upload:.2f} Mbps | Safe headroom (70%): {safe:.2f} Mbps | Platform cap: {cap_kbps} kbps | Quality tier: {quality}"
+        )
+
+    def _apply_obs_stream_profile(self):
+        platform_name = self.bit_platform.currentText().strip()
+        upload = float(self.spin_upload_mbps.value())
+        safe = max(0.0, upload * 0.70)
+        cap_kbps = {
+            "Kick": 8000,
+            "Aparat": 6000,
+            "Twitch": 6000,
+            "YouTube": 9000,
+        }.get(platform_name, 8000)
+        rec_kbps = int(min(cap_kbps, safe * 1000))
+
+        streaming = self.settings.data.setdefault("profiles", {}).setdefault("items", {}).setdefault("Streaming", {})
+        streaming["platform"] = platform_name
+        streaming["suggested_bitrate_kbps"] = rec_kbps
+
+        # also map OBS app routing profile quickly
+        dns_map = self.settings.data.setdefault("app_dns_routes", {})
+        vpn_map = self.settings.data.setdefault("app_vpn_routes", {})
+        if_map = self.settings.data.setdefault("app_interfaces", {})
+        pr_map = self.settings.data.setdefault("app_priorities", {})
+        for key in ("obs64.exe", "obs.exe"):
+            dns_map.setdefault(key, "AUTO")
+            vpn_map.setdefault(key, "AUTO")
+            if_map.setdefault(key, "AUTO")
+            pr_map[key] = "High"
+
+        self.settings.save()
+        QtWidgets.QMessageBox.information(
+            self,
+            "OBS Profile",
+            f"Saved to Streaming profile and OBS routing map. Suggested bitrate: {rec_kbps} kbps.",
         )
 
     def _ping_once_if_engine_on(self):
