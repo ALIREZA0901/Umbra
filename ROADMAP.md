@@ -46,7 +46,7 @@
 - **اقدام بعدی**:
   - اجرای core واقعی [انجام شد]
   - مدیریت پروفایل‌های VPN [انجام شد]
-  - SOCKS/HTTP/WireGuard/Hysteria2
+  - SOCKS/HTTP/WireGuard/Hysteria2 [انجام شد]
 
 ## 7) VPN Port / Process Detection
 - **Spec**: auto-detect port و route method داخلی.

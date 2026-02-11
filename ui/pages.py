@@ -775,11 +775,20 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.tbl_cfg.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.tbl_cfg.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
 
+        proto_row = QtWidgets.QHBoxLayout()
+        self.cmb_proto_filter = QtWidgets.QComboBox()
+        self.cmb_proto_filter.addItems(["All protocols", "SOCKS", "HTTP", "WireGuard", "Hysteria2"])
+        self.lbl_proto_status = QtWidgets.QLabel("Protocol support: -")
+        proto_row.addWidget(QtWidgets.QLabel("Filter:"))
+        proto_row.addWidget(self.cmb_proto_filter)
+        proto_row.addWidget(self.lbl_proto_status, 1)
+
         self.btn_set_active = QtWidgets.QPushButton("Use Selected Config for Active Profile")
         self.btn_set_active.setMinimumHeight(44)
 
         cfg_layout.addWidget(self.txt_import)
         cfg_layout.addWidget(self.btn_import)
+        cfg_layout.addLayout(proto_row)
         cfg_layout.addWidget(self.tbl_cfg, 1)
         cfg_layout.addWidget(self.btn_set_active)
 
@@ -841,14 +850,25 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.btn_update_sub.clicked.connect(self._update_sub)
         self.btn_set_active.clicked.connect(self._set_active_config)
         self.btn_set_profile.clicked.connect(self._set_profile_for_vpn)
+        self.cmb_proto_filter.currentTextChanged.connect(self._refresh)
         self.btn_start_core.clicked.connect(self._start_core)
         self.btn_stop_core.clicked.connect(self._stop_core)
 
     def _refresh(self):
         # configs table
         cfgs = self.settings.data.get("configs", []) or []
+        filter_text = self.cmb_proto_filter.currentText() if hasattr(self, "cmb_proto_filter") else "All protocols"
+        selected_type = {
+            "SOCKS": "socks",
+            "HTTP": "http",
+            "WireGuard": "wireguard",
+            "Hysteria2": "hysteria2",
+        }.get(filter_text)
+
+        shown_cfgs = [c for c in cfgs if (not selected_type or str(c.get("type", "")).lower() == selected_type)]
+
         self.tbl_cfg.setRowCount(0)
-        for c in cfgs:
+        for c in shown_cfgs:
             row = self.tbl_cfg.rowCount()
             self.tbl_cfg.insertRow(row)
             self.tbl_cfg.setItem(row, 0, QtWidgets.QTableWidgetItem(str(c.get("name", ""))))
@@ -856,6 +876,15 @@ class VPNManagerPage(QtWidgets.QWidget):
             self.tbl_cfg.setItem(row, 2, QtWidgets.QTableWidgetItem(str(c.get("core", "auto"))))
             self.tbl_cfg.setItem(row, 3, QtWidgets.QTableWidgetItem(str(c.get("added_at", ""))))
         self.tbl_cfg.resizeColumnsToContents()
+
+        counts = {"socks": 0, "http": 0, "wireguard": 0, "hysteria2": 0}
+        for c in cfgs:
+            t = str(c.get("type", "")).lower()
+            if t in counts:
+                counts[t] += 1
+        self.lbl_proto_status.setText(
+            f"Protocol support: SOCKS {counts['socks']} | HTTP {counts['http']} | WireGuard {counts['wireguard']} | Hysteria2 {counts['hysteria2']}"
+        )
 
         # subs
         self.lst_subs.clear()
@@ -921,13 +950,34 @@ class VPNManagerPage(QtWidgets.QWidget):
         self.btn_update_sub.setEnabled(True)
         QtWidgets.QMessageBox.warning(self, "Subscription", f"Update failed:\n{err}")
 
+    def _visible_configs(self) -> List[Dict[str, Any]]:
+        cfgs = self.settings.data.get("configs", []) or []
+        filter_text = self.cmb_proto_filter.currentText() if hasattr(self, "cmb_proto_filter") else "All protocols"
+        selected_type = {
+            "SOCKS": "socks",
+            "HTTP": "http",
+            "WireGuard": "wireguard",
+            "Hysteria2": "hysteria2",
+        }.get(filter_text)
+        return [c for c in cfgs if (not selected_type or str(c.get("type", "")).lower() == selected_type)]
+
     def _set_active_config(self):
         row = self.tbl_cfg.currentRow()
-        cfgs = self.settings.data.get("configs", []) or []
-        if row < 0 or row >= len(cfgs):
+        visible = self._visible_configs()
+        all_cfgs = self.settings.data.get("configs", []) or []
+        if row < 0 or row >= len(visible):
+            return
+        selected = visible[row]
+        target_raw = (selected.get("raw") or "").strip()
+        target_idx = -1
+        for i, c in enumerate(all_cfgs):
+            if (c.get("raw") or "").strip() == target_raw:
+                target_idx = i
+                break
+        if target_idx < 0:
             return
         active_profile = self.settings.get_active_profile()
-        self.settings.data.setdefault("profiles", {}).setdefault("items", {}).setdefault(active_profile, {})["active_config_idx"] = row
+        self.settings.data.setdefault("profiles", {}).setdefault("items", {}).setdefault(active_profile, {})["active_config_idx"] = target_idx
         self.settings.save()
         QtWidgets.QMessageBox.information(self, "Active Config", f"Selected config set for profile: {active_profile}")
         self._refresh()
