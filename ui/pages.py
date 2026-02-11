@@ -2097,8 +2097,20 @@ class SettingsPage(QtWidgets.QWidget):
         self.btn_upd_all = QtWidgets.QPushButton("Update All")
         self.btn_openvpn = QtWidgets.QPushButton("OpenVPN: Download/Install")
         self.btn_openconnect = QtWidgets.QPushButton("OpenConnect/Cisco: Download")
+        self.lbl_openvpn_path = QtWidgets.QLabel("OpenVPN binary: -")
+        self.lbl_openconnect_path = QtWidgets.QLabel("OpenConnect binary: -")
+        self.btn_set_openvpn_path = QtWidgets.QPushButton("Set OpenVPN Binary")
+        self.btn_set_openconnect_path = QtWidgets.QPushButton("Set OpenConnect Binary")
 
-        for b in (self.btn_upd_sing, self.btn_upd_mihomo, self.btn_upd_all, self.btn_openvpn, self.btn_openconnect):
+        for b in (
+            self.btn_upd_sing,
+            self.btn_upd_mihomo,
+            self.btn_upd_all,
+            self.btn_openvpn,
+            self.btn_openconnect,
+            self.btn_set_openvpn_path,
+            self.btn_set_openconnect_path,
+        ):
             b.setMinimumHeight(44)
 
         self.term = QtWidgets.QTextEdit()
@@ -2109,7 +2121,11 @@ class SettingsPage(QtWidgets.QWidget):
         u.addWidget(self.btn_upd_mihomo)
         u.addWidget(self.btn_upd_all)
         u.addWidget(self.btn_openvpn)
+        u.addWidget(self.btn_set_openvpn_path)
+        u.addWidget(self.lbl_openvpn_path)
         u.addWidget(self.btn_openconnect)
+        u.addWidget(self.btn_set_openconnect_path)
+        u.addWidget(self.lbl_openconnect_path)
         u.addWidget(self.term, 1)
 
         # Behavior page
@@ -2177,6 +2193,8 @@ class SettingsPage(QtWidgets.QWidget):
         self.btn_upd_all.clicked.connect(self._update_all)
         self.btn_openvpn.clicked.connect(self._open_openvpn)
         self.btn_openconnect.clicked.connect(self._open_openconnect)
+        self.btn_set_openvpn_path.clicked.connect(lambda: self._set_core_path("openvpn"))
+        self.btn_set_openconnect_path.clicked.connect(lambda: self._set_core_path("openconnect"))
 
         self.chk_tray.toggled.connect(self._save_behavior)
         self.cmb_close.currentTextChanged.connect(self._save_behavior)
@@ -2201,6 +2219,17 @@ class SettingsPage(QtWidgets.QWidget):
         except Exception as e:
             self._append_log(f"[{_now_hms()}] [ERROR] Failed to open OpenConnect page: {e}")
 
+    def _set_core_path(self, name: str):
+        title = "Select binary"
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, title)
+        if not path:
+            return
+        cores = self.settings.data.setdefault("core_updates", {})
+        paths = cores.setdefault("paths", {})
+        paths[name] = path
+        self.settings.save()
+        self._refresh()
+
     def _refresh(self):
         # behavior
         ui = (self.settings.data.get("ui", {}) or {})
@@ -2222,6 +2251,11 @@ class SettingsPage(QtWidgets.QWidget):
         self._refresh_dns_table()
         self.cmb_dns_preset.clear()
         self.cmb_dns_preset.addItems(self.settings.dns_preset_names())
+
+        # extra core paths
+        cpaths = ((self.settings.data.get("core_updates", {}) or {}).get("paths", {}) or {})
+        self.lbl_openvpn_path.setText(f"OpenVPN binary: {cpaths.get('openvpn') or '-'}")
+        self.lbl_openconnect_path.setText(f"OpenConnect binary: {cpaths.get('openconnect') or '-'}")
 
     def _save_behavior(self):
         self.settings.create_snapshot("Apply: Behavior/Copilot")

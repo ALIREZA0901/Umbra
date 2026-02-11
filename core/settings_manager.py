@@ -245,6 +245,10 @@ def _default_settings() -> Dict[str, Any]:
                 "singbox": "SagerNet/sing-box",
                 "clash": "MetaCubeX/mihomo",
             },
+            "paths": {
+                "openvpn": "",
+                "openconnect": "",
+            },
         },
         "apps": {
             "important": [
