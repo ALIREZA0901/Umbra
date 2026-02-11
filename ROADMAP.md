@@ -21,7 +21,7 @@
 - **Spec**: تنظیم DNS برای هر اپ + preset + apply/reset.
 - **وضعیت فعلی**: لیست DNS و بهینه‌سازی safe ping موجود است.
 - **اقدام بعدی**:
-  - اعمال per-app DNS روی سیستم
+  - اعمال per-app DNS روی سیستم [انجام شد]
   - presets قابل انتخاب [انجام شد]
   - reset per app [انجام شد]
 

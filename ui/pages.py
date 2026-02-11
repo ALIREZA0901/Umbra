@@ -1946,7 +1946,46 @@ class AppRoutingPage(QtWidgets.QWidget):
         pr_map[key] = self.cmb_prio.currentText()
 
         self.settings.save()
+        self._maybe_apply_system_dns_for_rule(key, dns_map[key], if_map[key])
         QtWidgets.QMessageBox.information(self, "Applied", "Routing saved (Apply).")
+
+    def _dns_server_from_setting(self, val: str) -> str:
+        v = str(val or "").strip()
+        if not v or v == "AUTO":
+            return ""
+        # format is usually: Name - server [loc]
+        if " - " in v:
+            tail = v.split(" - ", 1)[1]
+            return tail.split(" [", 1)[0].strip()
+        return v
+
+    def _maybe_apply_system_dns_for_rule(self, app_key: str, dns_val: str, iface_val: str):
+        dns_server = self._dns_server_from_setting(dns_val)
+        if not dns_server or not iface_val or iface_val == "AUTO":
+            return
+        if not platform.system().lower().startswith("win"):
+            return
+
+        mb = QtWidgets.QMessageBox(self)
+        mb.setWindowTitle("Apply DNS to Windows interface?")
+        mb.setIcon(QtWidgets.QMessageBox.Icon.Question)
+        mb.setText(
+            f"Per-app DNS requires OS routing support.\n"
+            f"Apply DNS {dns_server} to interface '{iface_val}' now for app '{app_key}'?"
+        )
+        mb.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        if mb.exec() != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            subprocess.run(
+                ["netsh", "interface", "ip", "set", "dns", f"name={iface_val}", "static", dns_server, "primary"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except Exception as exc:
+            QtWidgets.QMessageBox.warning(self, "DNS Apply", f"Failed to apply DNS on interface '{iface_val}'.\n{exc}")
 
     def _reset_dns_for_app(self):
         key = self._selected_app_key()
